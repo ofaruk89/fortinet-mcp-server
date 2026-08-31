@@ -443,6 +443,34 @@ def register(mcp: FastMCP) -> None:
             return {"error": str(exc), "status_code": exc.status_code}
 
     @mcp.tool()
+    async def firewall_address_rename(
+        ctx: Context,
+        name: Annotated[str, Field(description="Current address object name.")],
+        new_name: Annotated[str, Field(description="New address object name.")],
+        vdom: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Target VDOM name. Defaults to the server default VDOM. Use '*' for all VDOMs (super-admin required).",
+            ),
+        ] = None,
+    ) -> dict[str, Any]:
+        """Rename an IPv4 firewall address object.
+
+        FortiOS updates every reference to the object (policies, address groups)
+        as part of the rename, so no follow-up edits are needed.
+        """
+        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        if new_name == name:
+            return {"error": "new_name is identical to the current name."}
+        try:
+            return await client.cmdb_put(
+                f"firewall/address/{name}", {"name": new_name}, vdom=vdom
+            )
+        except FortiOSError as exc:
+            return {"error": str(exc), "status_code": exc.status_code}
+
+    @mcp.tool()
     async def firewall_address_delete(
         ctx: Context,
         name: Annotated[str, Field(description="Address object name to delete.")],
@@ -533,6 +561,34 @@ def register(mcp: FastMCP) -> None:
             body["comment"] = comment
         try:
             return await client.cmdb_post("firewall/addrgrp", body, vdom=vdom)
+        except FortiOSError as exc:
+            return {"error": str(exc), "status_code": exc.status_code}
+
+    @mcp.tool()
+    async def firewall_addrgrp_rename(
+        ctx: Context,
+        name: Annotated[str, Field(description="Current address group name.")],
+        new_name: Annotated[str, Field(description="New address group name.")],
+        vdom: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Target VDOM name. Defaults to the server default VDOM. Use '*' for all VDOMs (super-admin required).",
+            ),
+        ] = None,
+    ) -> dict[str, Any]:
+        """Rename an IPv4 firewall address group.
+
+        Group members are left untouched, and FortiOS updates every reference to
+        the group (policies, parent groups) as part of the rename.
+        """
+        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        if new_name == name:
+            return {"error": "new_name is identical to the current name."}
+        try:
+            return await client.cmdb_put(
+                f"firewall/addrgrp/{name}", {"name": new_name}, vdom=vdom
+            )
         except FortiOSError as exc:
             return {"error": str(exc), "status_code": exc.status_code}
 
