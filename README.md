@@ -4,6 +4,8 @@
   <img src="https://img.shields.io/badge/FortiOS-7.6.x-EE3124?style=for-the-badge&logo=fortinet&logoColor=white" alt="FortiOS version">
   <img src="https://img.shields.io/badge/MCP-Model_Context_Protocol-5A67D8?style=for-the-badge" alt="MCP">
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Docker-compose_ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/tools-244-16A34A?style=for-the-badge" alt="244 tools">
   <img src="https://img.shields.io/github/license/ofaruk89/fortinet-mcp-server?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/github/stars/ofaruk89/fortinet-mcp-server?style=for-the-badge" alt="Stars">
 </p>
@@ -13,8 +15,18 @@
 </p>
 
 <p align="center">
-  <sub>A fork of <a href="https://github.com/paoloamato2/fortinet-mcp-server">paoloamato2/fortinet-mcp-server</a>, extended with a container deployment, bearer-authenticated HTTP transport, and additional firewall tools.</sub>
+  Ask your firewalls questions in plain language — <em>"which IPsec tunnels are down across every site?"</em> — and let the model read the answer straight from the live REST API.
 </p>
+
+**Highlights**
+
+- **Your whole fleet from one instance.** Every tool takes a `fortigate` parameter naming a device from your inventory, so 5-6 firewalls per site are reachable from a single deployment — not one server per device, which would load 244 tool definitions into the client's context *per firewall*. Fleet tools can act on a whole site or tag at once.
+- **Runs in Docker.** `docker compose up -d` and you have a `streamable-http` MCP endpoint. The listen and published port come from one `.env` variable, and credentials are bind-mounted at run time so no token is ever baked into the image.
+- **Safe to put on the network.** Bearer-token authentication on the HTTP transport, `Host` header validation against DNS rebinding, loopback bind by default, and a hardened container (read-only rootfs, all capabilities dropped, non-root user).
+- **The whole API, not a subset.** 233 typed tools across firewall, system, VPN, router, user, monitor, log, security and wireless, plus 9 generic pass-through tools that reach all 1,536 endpoints — including anything the typed tools do not cover yet.
+- **Built for real fleets.** Per-device VDOM and TLS settings, tokens kept out of the inventory file via `${ENV_VAR}` references, an unreachable firewall logged and isolated rather than breaking the call, and 1,011 tests.
+
+<sub>A fork of <a href="https://github.com/paoloamato2/fortinet-mcp-server">paoloamato2/fortinet-mcp-server</a>, extended with multi-device support, a container deployment, an authenticated HTTP transport, and additional firewall tools.</sub>
 
 ---
 
@@ -42,8 +54,7 @@
 
 ## Features
 
-- **204+ typed MCP tools** organized by functional area (system, firewall, VPN, router, user, monitor, log, security, wireless)
-- **5 generic pass-through tools** that cover all 1,536 FortiOS API endpoints
+- **244 MCP tools**: 233 typed tools organized by functional area (system, firewall, VPN, router, user, monitor, log, security, wireless), 9 generic pass-through tools covering all 1,536 FortiOS API endpoints, and 2 fleet tools for the device inventory
 - Async HTTP client with Bearer-token authentication via `httpx`
 - Full support for **CMDB, Monitor, Log, and Service** API sections
 - Configurable SSL verification (self-signed certificates supported)
