@@ -10,11 +10,20 @@ Architecture:
 - Async HTTP client with Bearer-token authentication
 
 Configuration (environment variables or .env file):
+
+Device inventory — first source that is set wins:
+    FORTIOS_DEVICES_FILE   — path to a YAML/JSON inventory of FortiGates
+    FORTIOS_DEVICES        — the same structure inline as JSON
+    FORTIOS_HOST + FORTIOS_API_TOKEN — single-device fallback (see below)
+    FORTIOS_DEFAULT_DEVICE — device used when a tool call omits `device`
+
+Single-device variables (also the defaults for the fallback inventory):
     FORTIOS_HOST       — FortiGate URL (e.g. https://192.168.1.1)
     FORTIOS_API_TOKEN  — API Bearer token
     FORTIOS_VDOM       — VDOM (default: root)
     FORTIOS_VERIFY_SSL — true/false (default: false for self-signed)
     FORTIOS_TIMEOUT    — HTTP timeout in seconds (default: 30)
+    FORTIOS_DEVICE_NAME— name for the fallback device (default: "default")
 
 HTTP transport only (MCP_TRANSPORT=streamable-http):
     MCP_HOST           — bind address (default: 127.0.0.1)
@@ -34,7 +43,7 @@ import logging
 import os
 import secrets
 import sys
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
@@ -44,6 +53,7 @@ from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from devices import DeviceRegistry, load_devices, resolve_default
 from fortios_client import FortiOSClient
 
 # ── Tool modules ──────────────────────────────────────────────────────
@@ -74,27 +84,6 @@ logger = logging.getLogger("fortios_mcp")
 # ─────────────────────────────────────────────────────────────────────
 # Configuration
 # ─────────────────────────────────────────────────────────────────────
-
-
-def _required_env(name: str) -> str:
-    value = os.environ.get(name, "").strip()
-    if not value:
-        raise EnvironmentError(
-            f"Required environment variable '{name}' is not set. "
-            f"Copy .env.example to .env and fill in your values."
-        )
-    return value
-
-
-def _get_config() -> dict:
-    return {
-        "host": _required_env("FORTIOS_HOST"),
-        "api_token": _required_env("FORTIOS_API_TOKEN"),
-        "vdom": os.environ.get("FORTIOS_VDOM", "root").strip(),
-        "verify_ssl": os.environ.get("FORTIOS_VERIFY_SSL", "false").lower()
-        in ("1", "true", "yes"),
-        "timeout": float(os.environ.get("FORTIOS_TIMEOUT", "30")),
-    }
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -200,25 +189,43 @@ def _transport_security() -> TransportSecuritySettings | None:
 
 @asynccontextmanager
 async def lifespan(server: FastMCP) -> AsyncGenerator[dict, None]:
-    """Create and manage the FortiOS API client lifecycle."""
-    cfg = _get_config()
-    logger.info(
-        "Connecting to FortiGate %s (vdom=%s, ssl-verify=%s)",
-        cfg["host"],
-        cfg["vdom"],
-        cfg["verify_ssl"],
-    )
-    client = FortiOSClient(
-        host=cfg["host"],
-        api_token=cfg["api_token"],
-        vdom=cfg["vdom"],
-        verify_ssl=cfg["verify_ssl"],
-        timeout=cfg["timeout"],
-    )
-    async with client:
-        logger.info("FortiOS client initialized.")
-        yield {"client": client}
-    logger.info("FortiOS client closed.")
+    """Create one FortiOS API client per configured device."""
+    configs = load_devices()
+    default_name = resolve_default(configs)
+    registry = DeviceRegistry(default_name)
+
+    # Entering a FortiOSClient only builds its httpx client; no request is sent
+    # until a tool calls the device, so opening them all up front is cheap.
+    async with AsyncExitStack() as stack:
+        for config in configs:
+            client = await stack.enter_async_context(
+                FortiOSClient(
+                    host=config.host,
+                    api_token=config.api_token,
+                    vdom=config.vdom,
+                    verify_ssl=config.verify_ssl,
+                    timeout=config.timeout,
+                    name=config.name,
+                )
+            )
+            registry.register(config, client)
+            logger.info(
+                "Device %r ready: %s (vdom=%s, ssl-verify=%s)%s",
+                config.name,
+                config.host,
+                config.vdom,
+                config.verify_ssl,
+                " [default]" if config.name == default_name else "",
+            )
+
+        logger.info(
+            "%d device(s) registered; default is %r.", len(configs), default_name
+        )
+        # "client" is kept so tools that have not gained a `device` parameter yet
+        # keep working against the default device.
+        yield {"client": registry.get(), "devices": registry}
+
+    logger.info("All FortiOS clients closed.")
 
 
 # ─────────────────────────────────────────────────────────────────────

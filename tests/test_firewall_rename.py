@@ -1,13 +1,12 @@
 """Tests for the firewall address / address group rename tools."""
 
 import json
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from pytest_httpx import HTTPXMock
 
-from fortios_client import FortiOSClient
+from conftest import build_ctx, build_registry
 from server import mcp
 
 
@@ -16,13 +15,6 @@ def _tool_fn(name: str) -> Any:
     tool = mcp._tool_manager.get_tool(name)
     assert tool is not None, f"tool {name!r} is not registered"
     return tool.fn
-
-
-def _ctx(client: FortiOSClient) -> Any:
-    """Minimal stand-in for the MCP Context the tools read the client from."""
-    return SimpleNamespace(
-        request_context=SimpleNamespace(lifespan_context={"client": client})
-    )
 
 
 @pytest.mark.parametrize(
@@ -41,12 +33,11 @@ async def test_rename_issues_put_with_new_name(
         url=f"https://fw.example.test/api/v2/cmdb/{endpoint}/old-name?vdom=root",
         json={"status": "success", "revision": "1"},
     )
+    registry = build_registry(fw="https://fw.example.test")
 
-    async with FortiOSClient(
-        host="https://fw.example.test", api_token="token", vdom="root"
-    ) as client:
+    async with registry.get():
         result = await _tool_fn(tool_name)(
-            ctx=_ctx(client), name="old-name", new_name="new-name"
+            ctx=build_ctx(registry), name="old-name", new_name="new-name"
         )
 
     assert result["status"] == "success"
@@ -66,11 +57,11 @@ async def test_rename_issues_put_with_new_name(
 async def test_rename_to_same_name_is_rejected_without_a_request(
     httpx_mock: HTTPXMock, tool_name: str
 ) -> None:
-    async with FortiOSClient(
-        host="https://fw.example.test", api_token="token", vdom="root"
-    ) as client:
+    registry = build_registry(fw="https://fw.example.test")
+
+    async with registry.get():
         result = await _tool_fn(tool_name)(
-            ctx=_ctx(client), name="same-name", new_name="same-name"
+            ctx=build_ctx(registry), name="same-name", new_name="same-name"
         )
 
     assert "error" in result

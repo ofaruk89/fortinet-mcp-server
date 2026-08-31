@@ -48,9 +48,12 @@ class FortiOSClient:
         vdom: str = "root",
         verify_ssl: bool = False,
         timeout: float = 30.0,
+        name: str | None = None,
     ) -> None:
         self.host = host.rstrip("/")
         self.api_token = api_token
+        # Inventory name, used only to identify the device in log lines.
+        self.name = name or self.host
         self.vdom = vdom
         self.verify_ssl = verify_ssl
         self.timeout = timeout
@@ -101,6 +104,30 @@ class FortiOSClient:
             params.update({k: v for k, v in extra.items() if v is not None})
         return params
 
+    async def _send(self, method: str, url: str, **kwargs: Any) -> dict[str, Any]:
+        """Issue one request, turning transport failures into FortiOSError.
+
+        Connect timeouts, DNS failures and TLS errors surface as httpx
+        exceptions whose str() is often empty (ConnectTimeout is the common
+        case). Tools catch FortiOSError, so wrapping here gives every tool a
+        readable message naming the host instead of a blank error — which
+        matters most with a multi-device inventory, where one unreachable
+        firewall is a normal condition rather than a fault.
+        """
+        client = self._client_guard()
+        try:
+            resp = await client.request(method, url, **kwargs)
+        except httpx.HTTPError as exc:
+            detail = str(exc).strip() or type(exc).__name__
+            # Logged as well as raised: the caller gets the error in its return
+            # value, but an operator watching the server needs to see which
+            # firewall stopped answering without reading every tool response.
+            logger.warning(
+                "Device %r unreachable: %s %s — %s", self.name, method, url, detail
+            )
+            raise FortiOSError(f"Cannot reach {self.host}: {detail}") from exc
+        return self._check_response(resp)
+
     def _check_response(self, resp: httpx.Response) -> dict[str, Any]:
         """Parse and validate a FortiOS JSON response."""
         try:
@@ -115,6 +142,19 @@ class FortiOSClient:
         if resp.status_code >= 400 or http_status >= 400:
             status_msg = body.get("status", "error")
             error_msg = body.get("cli_error", body.get("http_method", str(body)))
+            # 401/403 almost always mean the API token or its admin profile is
+            # wrong, which is a configuration problem worth surfacing in the
+            # server log. Other API errors (a missing object on delete, say) are
+            # routine and stay at debug level.
+            level = logging.WARNING if http_status in (401, 403) else logging.DEBUG
+            logger.log(
+                level,
+                "Device %r API error %s on %s: %s",
+                self.name,
+                http_status,
+                resp.request.url.path,
+                status_msg,
+            )
             raise FortiOSError(
                 f"FortiOS API error {http_status}: {status_msg} — {error_msg}",
                 http_status,
@@ -133,10 +173,8 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """GET /api/v2/cmdb/{path} — retrieve configuration."""
-        client = self._client_guard()
         url = f"{self._BASE}/cmdb/{path.lstrip('/')}"
-        resp = await client.get(url, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send("GET", url, params=self._vdom_params(params, vdom))
 
     async def cmdb_post(
         self,
@@ -146,10 +184,10 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """POST /api/v2/cmdb/{path} — create a configuration object."""
-        client = self._client_guard()
         url = f"{self._BASE}/cmdb/{path.lstrip('/')}"
-        resp = await client.post(url, json=body, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send(
+            "POST", url, json=body, params=self._vdom_params(params, vdom)
+        )
 
     async def cmdb_put(
         self,
@@ -159,10 +197,10 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """PUT /api/v2/cmdb/{path} — replace a configuration object."""
-        client = self._client_guard()
         url = f"{self._BASE}/cmdb/{path.lstrip('/')}"
-        resp = await client.put(url, json=body, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send(
+            "PUT", url, json=body, params=self._vdom_params(params, vdom)
+        )
 
     async def cmdb_delete(
         self,
@@ -171,10 +209,8 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """DELETE /api/v2/cmdb/{path} — remove a configuration object."""
-        client = self._client_guard()
         url = f"{self._BASE}/cmdb/{path.lstrip('/')}"
-        resp = await client.delete(url, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send("DELETE", url, params=self._vdom_params(params, vdom))
 
     # ------------------------------------------------------------------
     # Monitor  (/api/v2/monitor/…)
@@ -187,10 +223,8 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """GET /api/v2/monitor/{path} — retrieve operational/real-time data."""
-        client = self._client_guard()
         url = f"{self._BASE}/monitor/{path.lstrip('/')}"
-        resp = await client.get(url, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send("GET", url, params=self._vdom_params(params, vdom))
 
     async def monitor_post(
         self,
@@ -200,12 +234,10 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """POST /api/v2/monitor/{path} — trigger a monitor action."""
-        client = self._client_guard()
         url = f"{self._BASE}/monitor/{path.lstrip('/')}"
-        resp = await client.post(
-            url, json=body or {}, params=self._vdom_params(params, vdom)
+        return await self._send(
+            "POST", url, json=body or {}, params=self._vdom_params(params, vdom)
         )
-        return self._check_response(resp)
 
     # ------------------------------------------------------------------
     # Log  (/api/v2/log/…)
@@ -218,10 +250,8 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """GET /api/v2/log/{path} — retrieve log entries."""
-        client = self._client_guard()
         url = f"{self._BASE}/log/{path.lstrip('/')}"
-        resp = await client.get(url, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send("GET", url, params=self._vdom_params(params, vdom))
 
     async def log_post(
         self,
@@ -231,12 +261,10 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """POST /api/v2/log/{path} — start a log search or action."""
-        client = self._client_guard()
         url = f"{self._BASE}/log/{path.lstrip('/')}"
-        resp = await client.post(
-            url, json=body or {}, params=self._vdom_params(params, vdom)
+        return await self._send(
+            "POST", url, json=body or {}, params=self._vdom_params(params, vdom)
         )
-        return self._check_response(resp)
 
     # ------------------------------------------------------------------
     # Service  (/api/v2/service/…)
@@ -249,10 +277,8 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """GET /api/v2/service/{path}."""
-        client = self._client_guard()
         url = f"{self._BASE}/service/{path.lstrip('/')}"
-        resp = await client.get(url, params=self._vdom_params(params, vdom))
-        return self._check_response(resp)
+        return await self._send("GET", url, params=self._vdom_params(params, vdom))
 
     async def service_post(
         self,
@@ -262,9 +288,7 @@ class FortiOSClient:
         vdom: str | None = None,
     ) -> dict[str, Any]:
         """POST /api/v2/service/{path}."""
-        client = self._client_guard()
         url = f"{self._BASE}/service/{path.lstrip('/')}"
-        resp = await client.post(
-            url, json=body or {}, params=self._vdom_params(params, vdom)
+        return await self._send(
+            "POST", url, json=body or {}, params=self._vdom_params(params, vdom)
         )
-        return self._check_response(resp)
