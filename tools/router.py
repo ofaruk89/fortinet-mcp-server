@@ -10,6 +10,7 @@ from typing import Annotated, Any
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field
 
+from devices import UnknownDeviceError, client_for
 from fortios_client import FortiOSClient, FortiOSError
 
 
@@ -23,6 +24,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_static_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -32,7 +44,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all IPv4 static routes."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/static", vdom=vdom)
         except FortiOSError as exc:
@@ -42,6 +57,17 @@ def register(mcp: FastMCP) -> None:
     async def router_static_get(
         ctx: Context,
         seq_num: Annotated[int, Field(description="Static route sequence number.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -51,7 +77,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get a specific static route by sequence number."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get(f"router/static/{seq_num}", vdom=vdom)
         except FortiOSError as exc:
@@ -79,6 +108,17 @@ def register(mcp: FastMCP) -> None:
         comment: Annotated[
             str | None, Field(default=None, description="Comment.")
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -88,7 +128,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Create a new static route."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         # Normalize CIDR to FortiOS "ip mask" format
         if "/" in dst:
             ip, prefix = dst.split("/")
@@ -134,6 +177,17 @@ def register(mcp: FastMCP) -> None:
         comment: Annotated[
             str | None, Field(default=None, description="New comment.")
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -143,7 +197,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Update an existing static route."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         body: dict[str, Any] = {}
         if gateway is not None:
             body["gateway"] = gateway
@@ -168,6 +225,17 @@ def register(mcp: FastMCP) -> None:
     async def router_static_delete(
         ctx: Context,
         seq_num: Annotated[int, Field(description="Route sequence number to delete.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -177,7 +245,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Delete a static route."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_delete(f"router/static/{seq_num}", vdom=vdom)
         except FortiOSError as exc:
@@ -190,6 +261,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_static6_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -199,7 +281,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all IPv6 static routes."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/static6", vdom=vdom)
         except FortiOSError as exc:
@@ -212,6 +297,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_policy_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -221,7 +317,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all policy-based routing rules."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/policy", vdom=vdom)
         except FortiOSError as exc:
@@ -234,6 +333,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_ospf_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -243,7 +353,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get OSPF routing configuration (areas, networks, neighbors, redistribute)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/ospf", vdom=vdom)
         except FortiOSError as exc:
@@ -252,6 +365,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_ospf6_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -261,7 +385,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get OSPFv3 (IPv6) routing configuration."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/ospf6", vdom=vdom)
         except FortiOSError as exc:
@@ -274,6 +401,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_bgp_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -283,7 +421,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get BGP routing configuration (ASN, peers, networks, redistribute)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/bgp", vdom=vdom)
         except FortiOSError as exc:
@@ -300,6 +441,17 @@ def register(mcp: FastMCP) -> None:
             str | None,
             Field(default=None, description="BGP router ID (IP address format)."),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -309,7 +461,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Update BGP global configuration (AS number, router ID)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         body: dict[str, Any] = {}
         if as_number is not None:
             body["as"] = as_number
@@ -329,6 +484,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_rip_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -338,7 +504,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get RIPv1/v2 routing configuration."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/rip", vdom=vdom)
         except FortiOSError as exc:
@@ -351,6 +520,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_prefix_list_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -360,7 +540,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all IPv4 prefix lists (used in route filtering)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/prefix-list", vdom=vdom)
         except FortiOSError as exc:
@@ -369,6 +552,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_route_map_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -378,7 +572,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all route-maps (used for route filtering and attribute modification)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/route-map", vdom=vdom)
         except FortiOSError as exc:
@@ -387,6 +584,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_community_list_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -396,7 +604,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all BGP community lists."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/community-list", vdom=vdom)
         except FortiOSError as exc:
@@ -409,6 +620,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_access_list_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -418,7 +640,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all router access lists (ACL for routing)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("router/access-list", vdom=vdom)
         except FortiOSError as exc:
@@ -431,6 +656,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def router_sdwan_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -440,7 +676,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get the SD-WAN (virtual-WAN) configuration."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("system/virtual-wan-link", vdom=vdom)
         except FortiOSError:
@@ -457,6 +696,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_router_ipv4(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -466,7 +716,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get the active IPv4 routing table (all routes in the FIB)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("router/ipv4", vdom=vdom)
         except FortiOSError as exc:
@@ -475,6 +728,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_router_ipv6(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -484,7 +748,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get the active IPv6 routing table."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("router/ipv6", vdom=vdom)
         except FortiOSError as exc:
@@ -505,6 +772,17 @@ def register(mcp: FastMCP) -> None:
                 default=None, description="Optional source interface for PBR lookup."
             ),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -514,7 +792,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Perform a route lookup — find the best route for a destination IP."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {"destination": destination}
         if interface:
             params["ipintf"] = interface
@@ -529,6 +810,17 @@ def register(mcp: FastMCP) -> None:
         destination: Annotated[
             str, Field(description="IPv6 destination address to look up.")
         ],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -538,7 +830,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Perform an IPv6 route lookup."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get(
                 "router/lookup-policy", {"destination": destination}, vdom=vdom
@@ -549,6 +844,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_router_statistics(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -558,7 +864,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get routing protocol statistics (BGP, OSPF, RIP adjacencies/neighbors)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("router/statistics", vdom=vdom)
         except FortiOSError as exc:
@@ -567,6 +876,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_sdwan_health_check(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -576,7 +896,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get SD-WAN performance SLA health check results."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("sdwan/health-check", vdom=vdom)
         except FortiOSError as exc:
@@ -585,6 +908,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_sdwan_members(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -594,7 +928,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get SD-WAN member interface status and bandwidth usage."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("sdwan/members", vdom=vdom)
         except FortiOSError as exc:

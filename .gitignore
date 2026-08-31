@@ -21,6 +21,11 @@ env/
 # Secrets
 .env
 !.env.example
+# Device inventory — holds one API token per FortiGate
+devices.yaml
+devices.yml
+devices.json
+!devices.example.yaml
 
 # One-off migration / utility scripts
 transform_vdom.py

@@ -29,6 +29,7 @@
   - [3. Configure environment](#3-configure-environment)
   - [4. Run with MCP Inspector](#4-run-with-mcp-inspector)
   - [5. Install in Claude Desktop](#5-install-in-claude-desktop)
+- [Multiple Devices](#multiple-devices)
 - [HTTP Mode](#http-mode)
 - [Docker](#docker)
 - [Usage Examples](#usage-examples)
@@ -47,6 +48,7 @@
 - Full support for **CMDB, Monitor, Log, and Service** API sections
 - Configurable SSL verification (self-signed certificates supported)
 - Compatible with **multi-VDOM** environments
+- **Multiple FortiGates from one server** — every tool takes a `fortigate` parameter, so one instance serves a whole fleet
 - Runs as **stdio** (Claude Desktop) or **HTTP** server (remote/cloud use)
 
 ---
@@ -157,6 +159,137 @@ Or manually add to `claude_desktop_config.json`:
 
 > On **macOS**, `claude_desktop_config.json` is at `~/Library/Application Support/Claude/claude_desktop_config.json`.  
 > On **Windows**, it is at `%APPDATA%\Claude\claude_desktop_config.json`.
+
+---
+
+## Multiple Devices
+
+One server instance can serve many FortiGates. This keeps the tool surface flat
+— running one instance per firewall would load 240+ tool definitions into the
+client's context *per firewall* — and lets a single conversation reach across
+sites.
+
+Every tool takes an optional `fortigate` parameter naming a firewall from the
+inventory. Omitting it targets the default device.
+
+```python
+firewall_policy_list(fortigate="fw-hq-01", filter_action="deny")
+monitor_vpn_ipsec(fortigate="fw-branch-01")
+```
+
+The parameter is named `fortigate` rather than `device` because FortiOS already
+uses `device` for the egress interface of a static route
+(`router_static_create(device="wan1")`).
+
+### Inventory
+
+Define the fleet in a YAML (or JSON) file and point `FORTIOS_DEVICES_FILE` at
+it. Start from [`devices.example.yaml`](devices.example.yaml):
+
+```yaml
+devices:
+  - name: fw-hq-01
+    host: https://fw-hq-01.example.com
+    api_token: ${FW_HQ_01_TOKEN}   # ${VAR} keeps the secret out of the file
+    site: hq
+    tags: [edge, ha-primary]
+    verify_ssl: true
+    default: true                  # targeted when `fortigate` is omitted
+  - name: fw-branch-01
+    host: https://fw-branch-01.example.com
+    api_token: ${FW_BRANCH_01_TOKEN}
+    vdom: dmz                      # defaults to root
+    site: branch
+    tags: [edge]
+    timeout: 45
+```
+
+Keep the tokens in `.env` and reference them from the inventory, so the
+inventory file itself holds no secrets:
+
+```dotenv
+FORTIOS_DEVICES_FILE=./devices.yaml
+FW_HQ_01_TOKEN=...
+FW_BRANCH_01_TOKEN=...
+```
+
+Each FortiGate issues its own API token, so every device needs its own.
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `name` | required | How tools address the device (`fortigate: fw-hq-01`) |
+| `host` | required | Base URL. Add `:port` only if the admin GUI listens on one |
+| `api_token` | required | This FortiGate's REST API token; `${VAR}` is expanded |
+| `vdom` | `root` | VDOM every call to this device targets, unless a tool is given its own `vdom` argument |
+| `verify_ssl` | `false` | Verify the FortiGate TLS certificate |
+| `timeout` | `30` | HTTP timeout in seconds |
+| `site` | — | Grouping value; fleet tools can select a whole site |
+| `tags` | — | Labels; fleet tools can select by them |
+| `description` | — | Free text, returned by `fortios_devices_list` |
+| `default` | `false` | Targeted when a call omits `fortigate` |
+
+### Selecting groups of devices
+
+`site` and `tags` are not just labels — the fleet tools take them to narrow
+which devices they act on. A device must carry **every** requested tag, so
+`tags: [edge, ha-primary]` picks the primary edge firewalls rather than
+everything edge-ish, and `site` combines with it. `fortios_devices_list`
+reports the values actually in use under `selectable`, so a model can discover
+them before selecting.
+
+For a handful of devices the same structure can live inline in `.env` instead,
+as JSON:
+
+```dotenv
+FORTIOS_DEVICES=[{"name":"fw-hq-01","host":"https://fw-hq-01.example.com","api_token":"...","default":true}]
+```
+
+If neither variable is set, the original `FORTIOS_HOST` / `FORTIOS_API_TOKEN`
+pair is registered as a single device — **existing single-device deployments
+need no changes**. Name it with `FORTIOS_DEVICE_NAME` (default: `default`).
+
+`devices.yaml` holds one API token per firewall: it is git-ignored and excluded
+from the Docker image, exactly like `.env`.
+
+### Choosing the default
+
+The device a call targets when `fortigate` is omitted, in order of precedence:
+`FORTIOS_DEFAULT_DEVICE` → the device marked `default: true` → the only device.
+With several devices and no default marked, the first is used and a warning is
+logged at startup.
+
+### Inventory tools
+
+| Tool | Purpose |
+|------|---------|
+| `fortios_devices_list` | Names, sites, tags and which device is the default. Never returns tokens. |
+| `fortios_devices_check` | Probes reachability and firmware of several devices in parallel (read-only). Narrow it with `devices`, or with `site` and `tags`; a failure on one device is reported for that device only. |
+
+### Coverage
+
+All 242 tools take `fortigate` — the nine generic pass-through tools and every
+typed tool across firewall, system, VPN, router, user, monitor, log, security
+and wireless. The only tools without it are the two fleet tools below, which
+address the inventory rather than a single device.
+
+### Docker
+
+Mount the inventory next to `.env` and point the variable at the container path:
+
+```yaml
+volumes:
+  - ./.env:/app/.env:ro
+  - ./devices.yaml:/app/devices.yaml:ro
+```
+
+```dotenv
+FORTIOS_DEVICES_FILE=/app/devices.yaml
+FW_HQ_01_TOKEN=...
+```
+
+The volume line is present but commented out in `docker-compose.yaml`. Create
+`devices.yaml` before uncommenting it — Docker creates a directory in place of a
+missing bind-mount source.
 
 ---
 

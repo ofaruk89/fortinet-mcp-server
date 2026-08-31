@@ -11,6 +11,7 @@ from typing import Annotated, Any
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field
 
+from devices import UnknownDeviceError, client_for
 from fortios_client import FortiOSClient, FortiOSError
 
 
@@ -99,6 +100,17 @@ def register(mcp: FastMCP) -> None:
             dict[str, Any] | None,
             Field(default=None, description="Additional query parameters as a dict."),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -112,7 +124,10 @@ def register(mcp: FastMCP) -> None:
         Returns log entries from the specified backend and type.
         Results include timestamps, sources, destinations, actions, and UTM verdicts.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         if source not in _BACKENDS:
             return {
                 "error": f"Invalid source '{source}'. Must be one of: {', '.join(_BACKENDS)}"
@@ -161,6 +176,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -170,7 +196,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query forward traffic logs with optional per-field filters."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         filters = []
         if srcip:
             filters.append(f"srcip=={srcip}")
@@ -200,6 +229,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -209,7 +249,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query local traffic logs (traffic to/from the FortiGate itself)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.log_get(
                 f"{source}/traffic/local", {"rows": rows, "start": start}, vdom=vdom
@@ -231,6 +274,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -240,7 +294,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query system event logs (admin logins, config changes, system alerts)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.log_get(
                 f"{source}/event/system", {"rows": rows, "start": start}, vdom=vdom
@@ -258,6 +315,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -267,7 +335,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query VPN event logs (IPsec SA negotiations, SSL VPN logins/logouts)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.log_get(
                 f"{source}/event/vpn", {"rows": rows, "start": start}, vdom=vdom
@@ -288,6 +359,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -297,7 +379,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query user authentication event logs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {"rows": rows, "start": start}
         if username:
             params["filter"] = f"user=={username}"
@@ -320,6 +405,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -329,7 +425,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query antivirus threat logs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.log_get(
                 f"{source}/virus/archive", {"rows": rows, "start": start}, vdom=vdom
@@ -359,6 +458,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -368,7 +478,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query web filter (URL category/block) logs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {"rows": rows, "start": start}
         if action:
             params["filter"] = f"action=={action}"
@@ -390,6 +503,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -399,7 +523,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query IPS intrusion detection/prevention attack logs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {"rows": rows, "start": start}
         if srcip:
             params["filter"] = f"srcip=={srcip}"
@@ -422,6 +549,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -431,7 +569,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query Application Control logs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {"rows": rows, "start": start}
         if action:
             params["filter"] = f"action=={action}"
@@ -450,6 +591,17 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -459,7 +611,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Query DNS filter logs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.log_get(
                 f"{source}/dns", {"rows": rows, "start": start}, vdom=vdom
@@ -474,6 +629,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_disk_filter_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -483,7 +649,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get the disk log filter settings (which log types are enabled)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("log.disk/filter", vdom=vdom)
         except FortiOSError as exc:
@@ -492,6 +661,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_disk_setting_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -501,7 +681,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get the disk logging settings (log level, max log size, etc.)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("log.disk/setting", vdom=vdom)
         except FortiOSError as exc:
@@ -510,6 +693,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_memory_setting_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -519,7 +713,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get the memory logging settings."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("log.memory/setting", vdom=vdom)
         except FortiOSError as exc:
@@ -528,6 +725,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_fortianalyzer_setting_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -537,7 +745,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get FortiAnalyzer logging configuration (server, port, status)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("log.fortianalyzer/setting", vdom=vdom)
         except FortiOSError as exc:
@@ -560,6 +771,17 @@ def register(mcp: FastMCP) -> None:
                 description="Encryption algorithm: default, high, low, disable.",
             ),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -569,7 +791,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Update FortiAnalyzer logging settings."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         body: dict[str, Any] = {}
         if status is not None:
             body["status"] = status
