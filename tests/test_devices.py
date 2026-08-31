@@ -89,6 +89,48 @@ devices:
     assert resolve_default(result) == "aef01"
 
 
+def test_vdom_comes_from_the_inventory_and_defaults_to_root(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "devices.yaml"
+    path.write_text(
+        """
+devices:
+  - name: fw-hq-01
+    host: https://fw-hq-01.test
+    api_token: t
+  - name: fw-hq-dmz
+    host: https://fw-hq-dmz.test
+    api_token: t
+    vdom: dmz
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("FORTIOS_DEVICES_FILE", str(path))
+
+    result = load_devices()
+
+    assert result[0].vdom == "root"
+    assert result[1].vdom == "dmz"
+
+
+@pytest.mark.asyncio
+async def test_per_device_vdom_reaches_the_request(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(json={"status": "success"})
+
+    config = DeviceConfig(
+        name="fw-hq-dmz", host="https://fw.test", api_token="t", vdom="dmz"
+    )
+    async with FortiOSClient(
+        host=config.host, api_token=config.api_token, vdom=config.vdom
+    ) as client:
+        await client.cmdb_get("firewall/address")
+
+    request = httpx_mock.get_request()
+    assert request is not None
+    assert request.url.params["vdom"] == "dmz"
+
+
 def test_inline_json_inventory(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FORTIOS_DEVICES", json.dumps(TWO_DEVICES))
 
@@ -230,6 +272,107 @@ def test_select_by_site_and_unknown_site() -> None:
     assert registry.select() == ["aef01", "bef01"]
     with pytest.raises(UnknownDeviceError, match="Known sites"):
         registry.select(site="nope")
+
+
+def _tagged_registry() -> DeviceRegistry:
+    entries = [
+        {
+            "name": "fw-hq-01",
+            "host": "https://a.test",
+            "api_token": "t",
+            "site": "hq",
+            "tags": ["edge", "ha-primary"],
+        },
+        {
+            "name": "fw-hq-02",
+            "host": "https://b.test",
+            "api_token": "t",
+            "site": "hq",
+            "tags": ["edge", "ha-secondary"],
+        },
+        {
+            "name": "fw-branch-01",
+            "host": "https://c.test",
+            "api_token": "t",
+            "site": "branch",
+            "tags": ["edge"],
+        },
+    ]
+    registry = DeviceRegistry("fw-hq-01")
+    for entry in entries:
+        config = DeviceConfig(**entry)
+        registry.register(
+            config, FortiOSClient(host=config.host, api_token=config.api_token)
+        )
+    return registry
+
+
+def test_select_by_tags_requires_every_tag() -> None:
+    registry = _tagged_registry()
+
+    assert registry.select(tags=["edge"]) == [
+        "fw-branch-01",
+        "fw-hq-01",
+        "fw-hq-02",
+    ]
+    # Both tags must be present, so this narrows to the primary.
+    assert registry.select(tags=["edge", "ha-primary"]) == ["fw-hq-01"]
+
+
+def test_select_combines_site_and_tags() -> None:
+    registry = _tagged_registry()
+
+    assert registry.select(site="hq", tags=["edge"]) == ["fw-hq-01", "fw-hq-02"]
+    assert registry.select(site="branch", tags=["edge"]) == ["fw-branch-01"]
+
+
+def test_unknown_tag_error_lists_the_tags_in_use() -> None:
+    registry = _tagged_registry()
+
+    with pytest.raises(UnknownDeviceError) as excinfo:
+        registry.select(tags=["nope"])
+
+    assert "Known tags" in str(excinfo.value)
+    assert "ha-primary" in str(excinfo.value)
+
+
+def test_tag_and_site_combination_that_matches_nothing_names_the_site() -> None:
+    registry = _tagged_registry()
+
+    with pytest.raises(UnknownDeviceError, match="at site 'branch'"):
+        registry.select(site="branch", tags=["ha-primary"])
+
+
+def test_explicit_devices_win_over_site_and_tags() -> None:
+    registry = _tagged_registry()
+
+    assert registry.select(["fw-branch-01"], site="hq", tags=["ha-primary"]) == [
+        "fw-branch-01"
+    ]
+
+
+def test_groups_reports_selectable_values() -> None:
+    assert _tagged_registry().groups() == {
+        "sites": ["branch", "hq"],
+        "tags": ["edge", "ha-primary", "ha-secondary"],
+    }
+
+
+@pytest.mark.asyncio
+async def test_devices_check_narrows_by_tags(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(json={"status": "success", "results": {}}, is_reusable=True)
+    registry = _tagged_registry()
+
+    async with (
+        registry.get("fw-hq-01"),
+        registry.get("fw-hq-02"),
+        registry.get("fw-branch-01"),
+    ):
+        result = await _tool_fn("fortios_devices_check")(
+            ctx=_ctx(registry), tags=["edge", "ha-primary"]
+        )
+
+    assert [r["device"] for r in result["results"]] == ["fw-hq-01"]
 
 
 def test_describe_never_exposes_tokens() -> None:

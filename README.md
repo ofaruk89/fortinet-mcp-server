@@ -173,8 +173,8 @@ Every tool takes an optional `fortigate` parameter naming a firewall from the
 inventory. Omitting it targets the default device.
 
 ```python
-firewall_policy_list(fortigate="aef01", filter_action="deny")
-monitor_vpn_ipsec(fortigate="bef01")
+firewall_policy_list(fortigate="fw-hq-01", filter_action="deny")
+monitor_vpn_ipsec(fortigate="fw-branch-01")
 ```
 
 The parameter is named `fortigate` rather than `device` because FortiOS already
@@ -188,17 +188,20 @@ it. Start from [`devices.example.yaml`](devices.example.yaml):
 
 ```yaml
 devices:
-  - name: aef01
-    host: https://aef01.example.local:4443
-    api_token: ${AEF01_TOKEN}     # ${VAR} keeps the secret out of the file
-    site: aef
-    tags: [edge, primary]
+  - name: fw-hq-01
+    host: https://fw-hq-01.example.com
+    api_token: ${FW_HQ_01_TOKEN}   # ${VAR} keeps the secret out of the file
+    site: hq
+    tags: [edge, ha-primary]
     verify_ssl: true
-    default: true                 # targeted when `device` is omitted
-  - name: bef01
-    host: https://bef01.example.local:4443
-    api_token: ${BEF01_TOKEN}
-    site: bef
+    default: true                  # targeted when `fortigate` is omitted
+  - name: fw-branch-01
+    host: https://fw-branch-01.example.com
+    api_token: ${FW_BRANCH_01_TOKEN}
+    vdom: dmz                      # defaults to root
+    site: branch
+    tags: [edge]
+    timeout: 45
 ```
 
 Keep the tokens in `.env` and reference them from the inventory, so the
@@ -206,21 +209,39 @@ inventory file itself holds no secrets:
 
 ```dotenv
 FORTIOS_DEVICES_FILE=./devices.yaml
-AEF01_TOKEN=...
-BEF01_TOKEN=...
+FW_HQ_01_TOKEN=...
+FW_BRANCH_01_TOKEN=...
 ```
 
-Each FortiGate issues its own API token, so every device needs its own. Only
-`name`, `host` and `api_token` are required; `vdom`, `verify_ssl` and `timeout`
-default to the same values as the single-device setup. `site`, `tags` and
-`description` are metadata returned by the inventory tools so a model can pick
-devices by site or role.
+Each FortiGate issues its own API token, so every device needs its own.
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `name` | required | How tools address the device (`fortigate: fw-hq-01`) |
+| `host` | required | Base URL. Add `:port` only if the admin GUI listens on one |
+| `api_token` | required | This FortiGate's REST API token; `${VAR}` is expanded |
+| `vdom` | `root` | VDOM every call to this device targets, unless a tool is given its own `vdom` argument |
+| `verify_ssl` | `false` | Verify the FortiGate TLS certificate |
+| `timeout` | `30` | HTTP timeout in seconds |
+| `site` | — | Grouping value; fleet tools can select a whole site |
+| `tags` | — | Labels; fleet tools can select by them |
+| `description` | — | Free text, returned by `fortios_devices_list` |
+| `default` | `false` | Targeted when a call omits `fortigate` |
+
+### Selecting groups of devices
+
+`site` and `tags` are not just labels — the fleet tools take them to narrow
+which devices they act on. A device must carry **every** requested tag, so
+`tags: [edge, ha-primary]` picks the primary edge firewalls rather than
+everything edge-ish, and `site` combines with it. `fortios_devices_list`
+reports the values actually in use under `selectable`, so a model can discover
+them before selecting.
 
 For a handful of devices the same structure can live inline in `.env` instead,
 as JSON:
 
 ```dotenv
-FORTIOS_DEVICES=[{"name":"aef01","host":"https://aef01.local:4443","api_token":"...","default":true}]
+FORTIOS_DEVICES=[{"name":"fw-hq-01","host":"https://fw-hq-01.example.com","api_token":"...","default":true}]
 ```
 
 If neither variable is set, the original `FORTIOS_HOST` / `FORTIOS_API_TOKEN`
@@ -242,7 +263,7 @@ logged at startup.
 | Tool | Purpose |
 |------|---------|
 | `fortios_devices_list` | Names, sites, tags and which device is the default. Never returns tokens. |
-| `fortios_devices_check` | Probes reachability and firmware of several devices in parallel (read-only). Accepts `devices` or `site`; a failure on one device is reported for that device only. |
+| `fortios_devices_check` | Probes reachability and firmware of several devices in parallel (read-only). Narrow it with `devices`, or with `site` and `tags`; a failure on one device is reported for that device only. |
 
 ### Coverage
 
@@ -263,7 +284,7 @@ volumes:
 
 ```dotenv
 FORTIOS_DEVICES_FILE=/app/devices.yaml
-AEF01_TOKEN=...
+FW_HQ_01_TOKEN=...
 ```
 
 The volume line is present but commented out in `docker-compose.yaml`. Create
