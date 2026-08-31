@@ -29,6 +29,7 @@
   - [3. Configure environment](#3-configure-environment)
   - [4. Run with MCP Inspector](#4-run-with-mcp-inspector)
   - [5. Install in Claude Desktop](#5-install-in-claude-desktop)
+- [Multiple Devices](#multiple-devices)
 - [HTTP Mode](#http-mode)
 - [Docker](#docker)
 - [Usage Examples](#usage-examples)
@@ -47,6 +48,7 @@
 - Full support for **CMDB, Monitor, Log, and Service** API sections
 - Configurable SSL verification (self-signed certificates supported)
 - Compatible with **multi-VDOM** environments
+- **Multiple FortiGates from one server** — every tool takes a `device` parameter, so one instance serves a whole fleet
 - Runs as **stdio** (Claude Desktop) or **HTTP** server (remote/cloud use)
 
 ---
@@ -157,6 +159,103 @@ Or manually add to `claude_desktop_config.json`:
 
 > On **macOS**, `claude_desktop_config.json` is at `~/Library/Application Support/Claude/claude_desktop_config.json`.  
 > On **Windows**, it is at `%APPDATA%\Claude\claude_desktop_config.json`.
+
+---
+
+## Multiple Devices
+
+One server instance can serve many FortiGates. This keeps the tool surface flat
+— running one instance per firewall would load 240+ tool definitions into the
+client's context *per firewall* — and lets a single conversation reach across
+sites.
+
+Tools take an optional `device` parameter naming a firewall from the inventory.
+Omitting it targets the default device.
+
+### Inventory
+
+Define the fleet in a YAML (or JSON) file and point `FORTIOS_DEVICES_FILE` at
+it. Start from [`devices.example.yaml`](devices.example.yaml):
+
+```yaml
+devices:
+  - name: aef01
+    host: https://aef01.example.local:4443
+    api_token: ${AEF01_TOKEN}     # ${VAR} keeps the secret out of the file
+    site: aef
+    tags: [edge, primary]
+    verify_ssl: true
+    default: true                 # targeted when `device` is omitted
+  - name: bef01
+    host: https://bef01.example.local:4443
+    api_token: ${BEF01_TOKEN}
+    site: bef
+```
+
+```dotenv
+FORTIOS_DEVICES_FILE=./devices.yaml
+```
+
+Each FortiGate issues its own API token, so every device needs its own. Only
+`name`, `host` and `api_token` are required; `vdom`, `verify_ssl` and `timeout`
+default to the same values as the single-device setup. `site`, `tags` and
+`description` are metadata returned by the inventory tools so a model can pick
+devices by site or role.
+
+For a handful of devices the same structure can live inline in `.env` instead,
+as JSON:
+
+```dotenv
+FORTIOS_DEVICES=[{"name":"aef01","host":"https://aef01.local:4443","api_token":"...","default":true}]
+```
+
+If neither variable is set, the original `FORTIOS_HOST` / `FORTIOS_API_TOKEN`
+pair is registered as a single device — **existing single-device deployments
+need no changes**. Name it with `FORTIOS_DEVICE_NAME` (default: `default`).
+
+`devices.yaml` holds one API token per firewall: it is git-ignored and excluded
+from the Docker image, exactly like `.env`.
+
+### Choosing the default
+
+The device a call targets when `device` is omitted, in order of precedence:
+`FORTIOS_DEFAULT_DEVICE` → the device marked `default: true` → the only device.
+With several devices and no default marked, the first is used and a warning is
+logged at startup.
+
+### Inventory tools
+
+| Tool | Purpose |
+|------|---------|
+| `fortios_devices_list` | Names, sites, tags and which device is the default. Never returns tokens. |
+| `fortios_devices_check` | Probes reachability and firmware of several devices in parallel (read-only). Accepts `devices` or `site`; a failure on one device is reported for that device only. |
+
+### Coverage
+
+The `device` parameter is currently on the nine generic pass-through tools —
+`cmdb_list/get/create/update/delete`, `monitor_get/action`, `log_get`,
+`service_call` — which between them cover **all 1,536 FortiOS endpoints**, so
+every operation is reachable on every device today. The typed tools (firewall,
+VPN, router, …) still target the default device and are being migrated to the
+same parameter.
+
+### Docker
+
+Mount the inventory next to `.env` and point the variable at the container path:
+
+```yaml
+volumes:
+  - ./.env:/app/.env:ro
+  - ./devices.yaml:/app/devices.yaml:ro
+```
+
+```dotenv
+FORTIOS_DEVICES_FILE=/app/devices.yaml
+```
+
+The volume line is present but commented out in `docker-compose.yaml`. Create
+`devices.yaml` before uncommenting it — Docker creates a directory in place of a
+missing bind-mount source.
 
 ---
 

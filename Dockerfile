@@ -44,7 +44,7 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 
-COPY server.py fortios_client.py ./
+COPY server.py fortios_client.py devices.py ./
 COPY tools/ ./tools/
 
 RUN useradd --create-home --shell /bin/bash fosmcp && \
