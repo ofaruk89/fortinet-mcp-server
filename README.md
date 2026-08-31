@@ -53,7 +53,7 @@
 |--------|--------:|-------------|
 | **Generic** | 5 | `cmdb_list/get/create/update/delete`, `monitor_get/action`, `log_get`, `service_call` — cover **ALL** endpoints |
 | **System** | 27 | Interfaces, DNS, NTP, admins, DHCP, SNMP, certificates, VDOMs, syslog |
-| **Firewall** | 32 | Policies (IPv4/IPv6), addresses, address groups, services, VIPs, IP pools, schedules, sessions |
+| **Firewall** | 34 | Policies (IPv4/IPv6), addresses, address groups (create/rename/delete), services, VIPs, IP pools, schedules, sessions |
 | **VPN** | 22 | IPsec Phase 1/2, SSL VPN portals/settings, tunnel up/down, VPN certificates |
 | **Router** | 17 | Static routes, OSPF, BGP, RIP, prefix lists, route maps, SD-WAN health |
 | **User** | 18 | Local users, groups, RADIUS, LDAP, TACACS+, SAML, authenticated sessions |
@@ -342,6 +342,10 @@ firewall_policy_list(filter_action="deny")
 
 # Get system status
 system_status()
+
+# Rename an address object or address group (references are updated by FortiOS)
+firewall_address_rename(name="old-server", new_name="web-server-01")
+firewall_addrgrp_rename(name="old-group", new_name="dmz-servers")
 
 # Check IPsec VPN tunnels
 monitor_vpn_ipsec()
