@@ -4,12 +4,16 @@
   <img src="https://img.shields.io/badge/FortiOS-7.6.x-EE3124?style=for-the-badge&logo=fortinet&logoColor=white" alt="FortiOS version">
   <img src="https://img.shields.io/badge/MCP-Model_Context_Protocol-5A67D8?style=for-the-badge" alt="MCP">
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/github/license/paoloamato2/fortinet-mcp-server?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/github/stars/paoloamato2/fortinet-mcp-server?style=for-the-badge" alt="Stars">
+  <img src="https://img.shields.io/github/license/ofaruk89/fortinet-mcp-server?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/github/stars/ofaruk89/fortinet-mcp-server?style=for-the-badge" alt="Stars">
 </p>
 
 <p align="center">
   <strong>A complete <a href="https://modelcontextprotocol.io">Model Context Protocol (MCP)</a> server for Fortinet FortiOS 7.6.x — exposing the entire REST API (1536 endpoints) as typed MCP tools usable from Claude Desktop, Cursor, or any MCP-compatible client.</strong>
+</p>
+
+<p align="center">
+  <sub>A fork of <a href="https://github.com/paoloamato2/fortinet-mcp-server">paoloamato2/fortinet-mcp-server</a>, extended with a container deployment, bearer-authenticated HTTP transport, and additional firewall tools.</sub>
 </p>
 
 ---
@@ -90,7 +94,7 @@
 ### 2. Install dependencies
 
 ```bash
-git clone https://github.com/paoloamato2/fortinet-mcp-server.git
+git clone https://github.com/ofaruk89/fortinet-mcp-server.git
 cd fortinet-mcp-server
 
 # Using uv (recommended)
@@ -405,7 +409,7 @@ fortinet-mcp-server/
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
 
-- Bug reports and feature requests → [open an issue](https://github.com/paoloamato2/fortinet-mcp-server/issues)
+- Bug reports and feature requests → [open an issue](https://github.com/ofaruk89/fortinet-mcp-server/issues)
 - Security vulnerabilities → see [SECURITY.md](SECURITY.md)
 - Code of conduct → [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
