@@ -263,7 +263,7 @@ async def _noop(*_: Any, **__: Any) -> None:
 
 
 @pytest.mark.parametrize(
-    ("device", "expected_host"),
+    ("fortigate", "expected_host"),
     [
         (None, "aef01.test"),
         ("aef01", "aef01.test"),
@@ -271,15 +271,15 @@ async def _noop(*_: Any, **__: Any) -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_device_parameter_routes_to_the_right_firewall(
-    httpx_mock: HTTPXMock, device: str | None, expected_host: str
+async def test_fortigate_parameter_routes_to_the_right_firewall(
+    httpx_mock: HTTPXMock, fortigate: str | None, expected_host: str
 ) -> None:
     httpx_mock.add_response(json={"status": "success", "results": []})
     registry = _registry()
 
     async with registry.get("aef01"), registry.get("bef01"):
         await _tool_fn("cmdb_list")(
-            ctx=_ctx(registry), resource_path="firewall/address", device=device
+            ctx=_ctx(registry), resource_path="firewall/address", fortigate=fortigate
         )
 
     request = httpx_mock.get_request()
@@ -297,7 +297,7 @@ async def test_unknown_device_returns_an_error_without_calling_out(
     registry = _registry()
 
     result = await _tool_fn("cmdb_list")(
-        ctx=_ctx(registry), resource_path="firewall/address", device="nope"
+        ctx=_ctx(registry), resource_path="firewall/address", fortigate="nope"
     )
 
     assert "Unknown device" in result["error"]

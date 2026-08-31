@@ -43,7 +43,9 @@ class UnknownDeviceError(Exception):
 class DeviceConfig(BaseModel):
     """Connection settings for one FortiGate."""
 
-    name: str = Field(description="Unique short name used by the device parameter.")
+    name: str = Field(
+        description="Unique short name used by the fortigate tool parameter."
+    )
     host: str = Field(description="Base URL, e.g. https://fw01.example.com:4443")
     api_token: str = Field(description="REST API token issued by this FortiGate.")
     vdom: str = "root"
@@ -56,7 +58,7 @@ class DeviceConfig(BaseModel):
     tags: list[str] = Field(default_factory=list)
     description: str | None = None
 
-    # Marks the device used when a tool call omits `device`.
+    # Marks the device used when a tool call omits `fortigate`.
     default: bool = False
 
     @field_validator("host")
@@ -186,7 +188,7 @@ def load_devices() -> list[DeviceConfig]:
 
 
 def resolve_default(devices: list[DeviceConfig]) -> str:
-    """Pick the device a tool call targets when it omits `device`."""
+    """Pick the device a tool call targets when it omits `fortigate`."""
     override = os.environ.get("FORTIOS_DEFAULT_DEVICE", "").strip()
     names = [d.name for d in devices]
 
@@ -290,8 +292,8 @@ class DeviceRegistry:
 def client_for(ctx: Any, device: str | None = None) -> FortiOSClient:
     """Resolve the FortiOSClient a tool call targets.
 
-    Single entry point for every tool, so adding the `device` parameter to a
-    tool is a one-line change at its client lookup.
+    Single entry point for every tool: each tool resolves its client here from
+    its `fortigate` parameter, so routing lives in one place.
     """
     registry: DeviceRegistry = ctx.request_context.lifespan_context["devices"]
     return registry.get(device)
