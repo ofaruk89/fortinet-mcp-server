@@ -36,6 +36,8 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         return {
             "default_device": registry.default_name,
             "count": len(registry.names()),
+            # Values accepted by the site/tags selectors of the fleet tools.
+            "selectable": registry.groups(),
             "devices": registry.describe(),
         }
 
@@ -56,16 +58,29 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description="Check only devices with this site value. Ignored when `devices` is given.",
             ),
         ] = None,
+        tags: Annotated[
+            list[str] | None,
+            Field(
+                default=None,
+                description=(
+                    "Check only devices carrying every one of these tags. "
+                    "Combines with `site`; ignored when `devices` is given."
+                ),
+            ),
+        ] = None,
     ) -> dict[str, Any]:
         """Probe reachability and firmware of several FortiGates in parallel.
 
         Read-only: calls monitor/system/status on each device. Use it to verify
         an inventory or to see which firewalls are unreachable. A failure on one
         device is reported for that device and does not abort the others.
+
+        Narrow the set with `devices`, or with `site` and `tags` — see
+        fortios_devices_list for the values in use.
         """
         registry: DeviceRegistry = ctx.request_context.lifespan_context["devices"]
         try:
-            names = registry.select(devices, site)
+            names = registry.select(devices, site, tags)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
 
