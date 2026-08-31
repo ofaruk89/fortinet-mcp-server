@@ -48,9 +48,12 @@ class FortiOSClient:
         vdom: str = "root",
         verify_ssl: bool = False,
         timeout: float = 30.0,
+        name: str | None = None,
     ) -> None:
         self.host = host.rstrip("/")
         self.api_token = api_token
+        # Inventory name, used only to identify the device in log lines.
+        self.name = name or self.host
         self.vdom = vdom
         self.verify_ssl = verify_ssl
         self.timeout = timeout
@@ -116,6 +119,12 @@ class FortiOSClient:
             resp = await client.request(method, url, **kwargs)
         except httpx.HTTPError as exc:
             detail = str(exc).strip() or type(exc).__name__
+            # Logged as well as raised: the caller gets the error in its return
+            # value, but an operator watching the server needs to see which
+            # firewall stopped answering without reading every tool response.
+            logger.warning(
+                "Device %r unreachable: %s %s — %s", self.name, method, url, detail
+            )
             raise FortiOSError(f"Cannot reach {self.host}: {detail}") from exc
         return self._check_response(resp)
 
@@ -133,6 +142,19 @@ class FortiOSClient:
         if resp.status_code >= 400 or http_status >= 400:
             status_msg = body.get("status", "error")
             error_msg = body.get("cli_error", body.get("http_method", str(body)))
+            # 401/403 almost always mean the API token or its admin profile is
+            # wrong, which is a configuration problem worth surfacing in the
+            # server log. Other API errors (a missing object on delete, say) are
+            # routine and stay at debug level.
+            level = logging.WARNING if http_status in (401, 403) else logging.DEBUG
+            logger.log(
+                level,
+                "Device %r API error %s on %s: %s",
+                self.name,
+                http_status,
+                resp.request.url.path,
+                status_msg,
+            )
             raise FortiOSError(
                 f"FortiOS API error {http_status}: {status_msg} — {error_msg}",
                 http_status,
