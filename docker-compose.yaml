@@ -1,0 +1,98 @@
+# docker-compose.yaml — FortiOS MCP Server (streamable-http)
+#
+# Configuration lives in a single .env file next to this one:
+#   * Compose reads it for ${...} substitution below (port, bind address)
+#   * The same file is bind-mounted to /app/.env, where server.py's
+#     load_dotenv() picks up the FORTIOS_* values
+#
+# Quick start:
+#   cp .env.example .env && chmod 644 .env   # fill in host + API token
+#   docker compose up -d --build
+#   -> http://127.0.0.1:${MCP_PORT}/mcp
+
+services:
+  fortios-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fortios-mcp-server:1.0.0
+    container_name: fortios-mcp
+    restart: unless-stopped
+
+    # The .env file is mounted read-only rather than passed via env_file, so
+    # there is exactly one source of truth for the FortiGate credentials.
+    # NOTE: create .env BEFORE the first `up` — Docker creates a *directory*
+    # in its place otherwise, load_dotenv() then finds nothing and the server
+    # exits with "Required environment variable 'FORTIOS_HOST' is not set".
+    # NOTE: the file must be readable by the container user (chmod 644 .env).
+    volumes:
+      - ./.env:/app/.env:ro
+
+    environment:
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-streamable-http}
+      # Container-internal bind address. Deliberately NOT taken from .env:
+      # anything other than 0.0.0.0 makes the published port unreachable.
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=${MCP_PORT:-8000}
+      # Bearer token required on every HTTP request. Empty/unset leaves the
+      # endpoint unauthenticated (the server logs a warning at startup).
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-}
+      # Host header values accepted for DNS rebinding protection. Required when
+      # clients connect via an IP or reverse-proxy hostname rather than
+      # localhost; loopback is always allowed on top of this list.
+      - MCP_ALLOWED_HOSTS=${MCP_ALLOWED_HOSTS:-}
+
+    # Host and container port come from the same variable, so changing the port
+    # means editing one line in .env (MCP_PORT) and nothing else.
+    #
+    # MCP_BIND_ADDRESS is an IP only — the port comes from MCP_PORT. Putting a
+    # port in it fails with "invalid IP address: <ip>:<port>".
+    #
+    # SECURITY: to expose this beyond loopback, set MCP_BIND_ADDRESS to an
+    # internal interface IP in .env AND set MCP_AUTH_TOKEN — without the token
+    # anyone who can reach the port can call all 204+ tools, including firewall
+    # policy create/delete. 0.0.0.0 is not recommended.
+    ports:
+      - "${MCP_BIND_ADDRESS:-127.0.0.1}:${MCP_PORT:-8000}:${MCP_PORT:-8000}"
+
+    # FastMCP exposes no /health route, and python:slim ships no curl, so the
+    # check is a plain TCP connect using the configured port.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import socket, os; socket.create_connection(('127.0.0.1', int(os.environ['MCP_PORT'])), 3).close()
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Container hardening: no extra capabilities, no privilege escalation,
+    # read-only rootfs (the server writes nothing but /tmp), bounded PIDs.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+          # pids lives here rather than as a top-level pids_limit: Compose
+          # rejects the two being set side by side.
+          pids: 256
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    networks:
+      - fortios-mcp-network
+
+networks:
+  fortios-mcp-network:
+    driver: bridge

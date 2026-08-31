@@ -1,0 +1,57 @@
+# Secrets — the API token must never be baked into the image.
+# .env is bind-mounted at run time (see docker-compose.yaml).
+.env
+
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv
+venv/
+env/
+ENV/
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yaml
+docker-compose.yml
+
+# Testing & coverage
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Linting / type checking
+.ruff_cache/
+.mypy_cache/
+.pyright/
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docs
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db
