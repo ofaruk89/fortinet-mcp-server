@@ -342,3 +342,71 @@ async def test_devices_check_probes_every_device_and_isolates_failures(
 
 def test_module_exports_client_for_helper() -> None:
     assert callable(devices_module.client_for)
+
+
+# ── Logging for unreachable / unauthorized devices ────────────────────
+
+
+@pytest.mark.asyncio
+async def test_unreachable_device_is_logged_and_does_not_break_the_call(
+    httpx_mock: HTTPXMock, caplog
+) -> None:
+    import httpx
+
+    from fortios_client import FortiOSError
+
+    httpx_mock.add_exception(httpx.ConnectTimeout(""))
+
+    async with FortiOSClient(
+        host="https://down.test", api_token="token", name="bef01"
+    ) as client:
+        with caplog.at_level("WARNING", logger="fortios_client"):
+            with pytest.raises(FortiOSError, match="Cannot reach https://down.test"):
+                await client.monitor_get("system/status")
+
+    # The device name is in the log so an operator can tell which firewall
+    # stopped answering without reading tool responses.
+    assert "bef01" in caplog.text
+    assert "unreachable" in caplog.text
+    assert "ConnectTimeout" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_permission_error_is_logged_as_a_warning(
+    httpx_mock: HTTPXMock, caplog
+) -> None:
+    from fortios_client import FortiOSError
+
+    httpx_mock.add_response(
+        status_code=403, json={"http_status": 403, "status": "error"}
+    )
+
+    async with FortiOSClient(
+        host="https://fw.test", api_token="token", name="aef01"
+    ) as client:
+        with caplog.at_level("WARNING", logger="fortios_client"):
+            with pytest.raises(FortiOSError):
+                await client.cmdb_get("firewall/policy")
+
+    assert "aef01" in caplog.text
+    assert "403" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_routine_api_errors_stay_out_of_the_warning_log(
+    httpx_mock: HTTPXMock, caplog
+) -> None:
+    from fortios_client import FortiOSError
+
+    httpx_mock.add_response(
+        status_code=404, json={"http_status": 404, "status": "error"}
+    )
+
+    async with FortiOSClient(
+        host="https://fw.test", api_token="token", name="aef01"
+    ) as client:
+        with caplog.at_level("WARNING", logger="fortios_client"):
+            with pytest.raises(FortiOSError):
+                await client.cmdb_get("firewall/address/nope")
+
+    assert caplog.text == ""
