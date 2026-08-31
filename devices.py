@@ -52,10 +52,17 @@ class DeviceConfig(BaseModel):
     verify_ssl: bool = False
     timeout: float = 30.0
 
-    # Grouping metadata — not used to connect, but returned by the inventory
-    # tools so a model can pick devices by site or role.
-    site: str | None = None
-    tags: list[str] = Field(default_factory=list)
+    # Grouping metadata. Not used to connect, but selectable: fleet tools take
+    # a site or a tag list to narrow which devices they act on, and the values
+    # are returned by fortios_devices_list so a model can choose for itself.
+    site: str | None = Field(
+        default=None,
+        description="Location or grouping, e.g. hq. Selectable as a whole.",
+    )
+    tags: list[str] = Field(
+        default_factory=list,
+        description="Free-form labels, e.g. [edge, ha-primary]. Selectable.",
+    )
     description: str | None = None
 
     # Marks the device used when a tool call omits `fortigate`.
@@ -250,9 +257,18 @@ class DeviceRegistry:
         return sorted(self._clients)
 
     def select(
-        self, devices: list[str] | None = None, site: str | None = None
+        self,
+        devices: list[str] | None = None,
+        site: str | None = None,
+        tags: list[str] | None = None,
     ) -> list[str]:
-        """Resolve a device/site selection to device names."""
+        """Resolve a selection to device names.
+
+        An explicit `devices` list wins. Otherwise `site` and `tags` both
+        narrow the full inventory, and a device must carry *every* requested
+        tag to match, so [edge, ha-primary] picks the primary edge firewalls
+        rather than everything edge-ish. With no arguments, the whole fleet.
+        """
         if devices:
             unknown = [d for d in devices if d not in self._clients]
             if unknown:
@@ -261,16 +277,34 @@ class DeviceRegistry:
                     f"Configured devices: {', '.join(self.names())}."
                 )
             return list(devices)
+
+        matched = list(self._configs.values())
         if site:
-            matched = [n for n, c in self._configs.items() if c.site == site]
+            matched = [c for c in matched if c.site == site]
             if not matched:
-                sites = sorted({c.site for c in self._configs.values() if c.site})
+                known = sorted({c.site for c in self._configs.values() if c.site})
                 raise UnknownDeviceError(
                     f"No device has site {site!r}. Known sites: "
-                    f"{', '.join(sites) if sites else 'none configured'}."
+                    f"{', '.join(known) if known else 'none configured'}."
                 )
-            return sorted(matched)
-        return self.names()
+        if tags:
+            wanted = set(tags)
+            matched = [c for c in matched if wanted.issubset(set(c.tags))]
+            if not matched:
+                known = sorted({t for c in self._configs.values() for t in c.tags})
+                scope = f" at site {site!r}" if site else ""
+                raise UnknownDeviceError(
+                    f"No device{scope} carries every tag in {sorted(wanted)}. "
+                    f"Known tags: {', '.join(known) if known else 'none configured'}."
+                )
+        return sorted(c.name for c in matched)
+
+    def groups(self) -> dict[str, list[str]]:
+        """Selectable site and tag values, for the inventory tool to advertise."""
+        return {
+            "sites": sorted({c.site for c in self._configs.values() if c.site}),
+            "tags": sorted({t for c in self._configs.values() for t in c.tags}),
+        }
 
     def describe(self) -> list[dict[str, Any]]:
         """Inventory without secrets — safe to return from a tool."""

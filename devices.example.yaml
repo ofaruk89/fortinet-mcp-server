@@ -9,44 +9,54 @@
 #
 # Tokens: each FortiGate issues its own. Keep them in .env and reference them
 # here as ${VAR}, so this file holds no secrets. devices.yaml is git-ignored
-# and excluded from the Docker image regardless.
+# and excluded from the Docker image either way.
 #
-# Required per device: name, host, api_token.
-# Optional: vdom (root), verify_ssl (false), timeout (30), site, tags,
-#           description, default (false).
+# Per device:
+#   name        required  how tools address it (`fortigate: fw-hq-01`)
+#   host        required  base URL; add :port only if the admin GUI uses one
+#   api_token   required  this FortiGate's REST API token
+#   vdom        root      VDOM every call targets unless a tool overrides it
+#   verify_ssl  false     verify the FortiGate TLS certificate
+#   timeout     30        HTTP timeout in seconds
+#   site        -         grouping value; fleet tools can select a whole site
+#   tags        -         labels; fleet tools can select by them (must match all)
+#   description -         free text, shown by fortios_devices_list
+#   default     false     targeted when a call omits `fortigate`
 
 devices:
-  # ── Site: aef ─────────────────────────────────────────────────────
-  - name: aef01
-    host: https://aef01.example.local:4443
-    api_token: ${AEF01_TOKEN}
-    site: aef
+  # ── Site: hq ──────────────────────────────────────────────────────
+  - name: fw-hq-01
+    host: https://fw-hq-01.example.com
+    api_token: ${FW_HQ_01_TOKEN}
+    site: hq
     tags: [edge, ha-primary]
-    description: AEF internet edge, HA primary
+    description: HQ internet edge, HA primary
     verify_ssl: true
-    # Targeted when a tool call omits `fortigate`. Mark exactly one device.
+    # Exactly one device should carry this.
     default: true
 
-  - name: aef02
-    host: https://aef02.example.local:4443
-    api_token: ${AEF02_TOKEN}
-    site: aef
+  - name: fw-hq-02
+    host: https://fw-hq-02.example.com
+    api_token: ${FW_HQ_02_TOKEN}
+    site: hq
     tags: [edge, ha-secondary]
     verify_ssl: true
 
-  - name: aef-dc01
-    host: https://aef-dc01.example.local:4443
-    api_token: ${AEF_DC01_TOKEN}
-    site: aef
+  # Non-default VDOM: every call for this device targets it unless a tool
+  # is given its own vdom argument.
+  - name: fw-hq-dmz
+    host: https://fw-hq-dmz.example.com
+    api_token: ${FW_HQ_DMZ_TOKEN}
+    vdom: dmz
+    site: hq
     tags: [datacenter]
-    vdom: root
     verify_ssl: true
 
-  # ── Site: bef ─────────────────────────────────────────────────────
-  - name: bef01
-    host: https://bef01.example.local:4443
-    api_token: ${BEF01_TOKEN}
-    site: bef
+  # ── Site: branch ──────────────────────────────────────────────────
+  - name: fw-branch-01
+    host: https://fw-branch-01.example.com
+    api_token: ${FW_BRANCH_01_TOKEN}
+    site: branch
     tags: [edge]
     # Self-signed certificate: either leave verification off, or import the
     # FortiGate CA into the container trust store and set this to true.
