@@ -4,36 +4,52 @@
 #   FORTIOS_DEVICES_FILE=/app/devices.yaml     (Docker)
 #   FORTIOS_DEVICES_FILE=./devices.yaml        (local)
 #
-# Every FortiGate issues its own API token, so each device needs its own.
-# devices.yaml is git-ignored and excluded from the Docker image — it holds
-# secrets. To keep tokens out of the file entirely, reference an environment
-# variable instead: api_token: ${AEF01_TOKEN}
+# Every tool takes a `fortigate` parameter naming one of these devices.
+# Omitting it targets the device marked `default: true`.
+#
+# Tokens: each FortiGate issues its own. Keep them in .env and reference them
+# here as ${VAR}, so this file holds no secrets. devices.yaml is git-ignored
+# and excluded from the Docker image regardless.
+#
+# Required per device: name, host, api_token.
+# Optional: vdom (root), verify_ssl (false), timeout (30), site, tags,
+#           description, default (false).
 
 devices:
+  # ── Site: aef ─────────────────────────────────────────────────────
   - name: aef01
     host: https://aef01.example.local:4443
     api_token: ${AEF01_TOKEN}
     site: aef
-    tags: [edge, primary]
-    description: AEF site edge firewall, HA primary
-    vdom: root
+    tags: [edge, ha-primary]
+    description: AEF internet edge, HA primary
     verify_ssl: true
-    # Targeted when a tool call omits `device`. Mark exactly one device.
+    # Targeted when a tool call omits `fortigate`. Mark exactly one device.
     default: true
 
   - name: aef02
     host: https://aef02.example.local:4443
     api_token: ${AEF02_TOKEN}
     site: aef
-    tags: [edge, secondary]
+    tags: [edge, ha-secondary]
     verify_ssl: true
 
+  - name: aef-dc01
+    host: https://aef-dc01.example.local:4443
+    api_token: ${AEF_DC01_TOKEN}
+    site: aef
+    tags: [datacenter]
+    vdom: root
+    verify_ssl: true
+
+  # ── Site: bef ─────────────────────────────────────────────────────
   - name: bef01
     host: https://bef01.example.local:4443
     api_token: ${BEF01_TOKEN}
     site: bef
     tags: [edge]
-    # Self-signed certificate: leave verification off, or import the CA into
-    # the container trust store and set this to true.
+    # Self-signed certificate: either leave verification off, or import the
+    # FortiGate CA into the container trust store and set this to true.
     verify_ssl: false
+    # Slow link to this site.
     timeout: 45
