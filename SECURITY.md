@@ -20,7 +20,7 @@ Doing so would expose the vulnerability before a fix is available.
 
 ### Preferred channel — GitHub Private Security Advisories
 
-1. Go to the **[Security tab](https://github.com/paoloamato2/fortinet-mcp-server/security)** of this repository.
+1. Go to the **[Security tab](https://github.com/ofaruk89/fortinet-mcp-server/security)** of this repository.
 2. Click **"Report a vulnerability"**.
 3. Fill in the advisory form with as much detail as possible (see below).
 4. Submit — only the maintainer can see the report until it is disclosed.
