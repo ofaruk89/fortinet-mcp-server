@@ -1,6 +1,10 @@
-# Secrets — the API token must never be baked into the image.
-# .env is bind-mounted at run time (see docker-compose.yaml).
+# Secrets — API tokens must never be baked into the image.
+# .env and devices.yaml are bind-mounted at run time (see docker-compose.yaml).
 .env
+devices.yaml
+devices.yml
+devices.json
+!devices.example.yaml
 
 # Git
 .git
