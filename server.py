@@ -205,6 +205,7 @@ async def lifespan(server: FastMCP) -> AsyncGenerator[dict, None]:
                     vdom=config.vdom,
                     verify_ssl=config.verify_ssl,
                     timeout=config.timeout,
+                    name=config.name,
                 )
             )
             registry.register(config, client)
