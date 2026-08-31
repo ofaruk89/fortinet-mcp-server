@@ -48,7 +48,7 @@
 - Full support for **CMDB, Monitor, Log, and Service** API sections
 - Configurable SSL verification (self-signed certificates supported)
 - Compatible with **multi-VDOM** environments
-- **Multiple FortiGates from one server** — every tool takes a `device` parameter, so one instance serves a whole fleet
+- **Multiple FortiGates from one server** — every tool takes a `fortigate` parameter, so one instance serves a whole fleet
 - Runs as **stdio** (Claude Desktop) or **HTTP** server (remote/cloud use)
 
 ---
@@ -169,8 +169,17 @@ One server instance can serve many FortiGates. This keeps the tool surface flat
 client's context *per firewall* — and lets a single conversation reach across
 sites.
 
-Tools take an optional `device` parameter naming a firewall from the inventory.
-Omitting it targets the default device.
+Every tool takes an optional `fortigate` parameter naming a firewall from the
+inventory. Omitting it targets the default device.
+
+```python
+firewall_policy_list(fortigate="aef01", filter_action="deny")
+monitor_vpn_ipsec(fortigate="bef01")
+```
+
+The parameter is named `fortigate` rather than `device` because FortiOS already
+uses `device` for the egress interface of a static route
+(`router_static_create(device="wan1")`).
 
 ### Inventory
 
@@ -192,8 +201,13 @@ devices:
     site: bef
 ```
 
+Keep the tokens in `.env` and reference them from the inventory, so the
+inventory file itself holds no secrets:
+
 ```dotenv
 FORTIOS_DEVICES_FILE=./devices.yaml
+AEF01_TOKEN=...
+BEF01_TOKEN=...
 ```
 
 Each FortiGate issues its own API token, so every device needs its own. Only
@@ -218,7 +232,7 @@ from the Docker image, exactly like `.env`.
 
 ### Choosing the default
 
-The device a call targets when `device` is omitted, in order of precedence:
+The device a call targets when `fortigate` is omitted, in order of precedence:
 `FORTIOS_DEFAULT_DEVICE` → the device marked `default: true` → the only device.
 With several devices and no default marked, the first is used and a warning is
 logged at startup.
@@ -232,12 +246,10 @@ logged at startup.
 
 ### Coverage
 
-The `device` parameter is currently on the nine generic pass-through tools —
-`cmdb_list/get/create/update/delete`, `monitor_get/action`, `log_get`,
-`service_call` — which between them cover **all 1,536 FortiOS endpoints**, so
-every operation is reachable on every device today. The typed tools (firewall,
-VPN, router, …) still target the default device and are being migrated to the
-same parameter.
+All 242 tools take `fortigate` — the nine generic pass-through tools and every
+typed tool across firewall, system, VPN, router, user, monitor, log, security
+and wireless. The only tools without it are the two fleet tools below, which
+address the inventory rather than a single device.
 
 ### Docker
 
@@ -251,6 +263,7 @@ volumes:
 
 ```dotenv
 FORTIOS_DEVICES_FILE=/app/devices.yaml
+AEF01_TOKEN=...
 ```
 
 The volume line is present but commented out in `docker-compose.yaml`. Create

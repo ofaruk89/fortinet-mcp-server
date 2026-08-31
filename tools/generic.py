@@ -142,7 +142,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description="Comma-separated list of fields to return. Reduces response size.",
             ),
         ] = None,
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -167,7 +167,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Returns the full FortiOS JSON response including results array and metadata.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         params: dict[str, Any] = {}
@@ -198,7 +198,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -222,7 +222,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any GET on /api/v2/cmdb/{resource}/{key}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         try:
@@ -253,7 +253,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -277,7 +277,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any POST on /api/v2/cmdb/{resource_path}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         try:
@@ -311,7 +311,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -335,7 +335,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any PUT on /api/v2/cmdb/{resource_path}/{key}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         try:
@@ -360,7 +360,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -384,7 +384,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any DELETE on /api/v2/cmdb/{resource_path}/{key}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         try:
@@ -420,7 +420,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 ),
             ),
         ] = None,
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -444,7 +444,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any GET on /api/v2/monitor/{monitor_path}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         params: dict[str, Any] | None = None
@@ -483,7 +483,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 ),
             ),
         ] = None,
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -507,7 +507,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any POST on /api/v2/monitor/{monitor_path}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         body_dict: dict[str, Any] = {}
@@ -549,7 +549,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 ),
             ),
         ] = None,
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -573,7 +573,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any GET on /api/v2/log/{log_path}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         params: dict[str, Any] | None = None
@@ -620,7 +620,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description="Optional JSON body for POST requests.",
             ),
         ] = None,
-        device: Annotated[
+        fortigate: Annotated[
             str | None,
             Field(
                 default=None,
@@ -644,7 +644,7 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers all GET/POST on /api/v2/service/{service_path}.
         """
         try:
-            client: FortiOSClient = client_for(ctx, device)
+            client: FortiOSClient = client_for(ctx, fortigate)
         except UnknownDeviceError as exc:
             return {"error": str(exc)}
         if method.upper() == "POST":

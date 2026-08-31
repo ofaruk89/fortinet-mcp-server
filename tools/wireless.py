@@ -12,6 +12,7 @@ from typing import Annotated, Any
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field
 
+from devices import UnknownDeviceError, client_for
 from fortios_client import FortiOSClient, FortiOSError
 
 
@@ -25,6 +26,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_wtp_profile_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -34,7 +46,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all WTP (Wireless Termination Point / AP) profiles."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/wtp-profile", vdom=vdom)
         except FortiOSError as exc:
@@ -44,6 +59,17 @@ def register(mcp: FastMCP) -> None:
     async def wifi_wtp_profile_get(
         ctx: Context,
         name: Annotated[str, Field(description="WTP profile name.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -53,7 +79,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get a specific AP (WTP) profile configuration."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get(
                 f"wireless-controller/wtp-profile/{name}", vdom=vdom
@@ -68,6 +97,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_wtp_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -77,7 +117,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all registered WTPs (Access Points) with their configuration."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/wtp", vdom=vdom)
         except FortiOSError as exc:
@@ -87,6 +130,17 @@ def register(mcp: FastMCP) -> None:
     async def wifi_wtp_get(
         ctx: Context,
         wtp_id: Annotated[str, Field(description="WTP (AP) serial number or name.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -96,7 +150,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get configuration for a specific WTP (Access Point)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get(f"wireless-controller/wtp/{wtp_id}", vdom=vdom)
         except FortiOSError as exc:
@@ -106,6 +163,17 @@ def register(mcp: FastMCP) -> None:
     async def wifi_wtp_deauthorize(
         ctx: Context,
         wtp_id: Annotated[str, Field(description="WTP serial number to deauthorize.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -115,7 +183,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Deauthorize (remove) a WTP (Access Point) from the controller."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_delete(
                 f"wireless-controller/wtp/{wtp_id}", vdom=vdom
@@ -130,6 +201,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_vap_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -139,7 +221,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all VAPs (Virtual APs / SSIDs)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/vap", vdom=vdom)
         except FortiOSError as exc:
@@ -149,6 +234,17 @@ def register(mcp: FastMCP) -> None:
     async def wifi_vap_get(
         ctx: Context,
         name: Annotated[str, Field(description="VAP (SSID) name.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -158,7 +254,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get a specific VAP (SSID) configuration."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get(f"wireless-controller/vap/{name}", vdom=vdom)
         except FortiOSError as exc:
@@ -187,6 +286,17 @@ def register(mcp: FastMCP) -> None:
                 default=None, description="WPA/WPA2 pre-shared key (8-63 characters)."
             ),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -207,7 +317,10 @@ def register(mcp: FastMCP) -> None:
         ] = "disable",
     ) -> dict[str, Any]:
         """Create a new VAP (SSID) wireless network."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         body: dict[str, Any] = {
             "name": name,
             "ssid": ssid,
@@ -228,6 +341,17 @@ def register(mcp: FastMCP) -> None:
     async def wifi_vap_delete(
         ctx: Context,
         name: Annotated[str, Field(description="VAP (SSID) name to delete.")],
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -237,7 +361,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Delete a VAP (SSID) wireless network."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_delete(
                 f"wireless-controller/vap/{name}", vdom=vdom
@@ -252,6 +379,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_vap_group_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -261,7 +399,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all VAP groups (SSID bundles)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/vap-group", vdom=vdom)
         except FortiOSError as exc:
@@ -274,6 +415,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_controller_setting_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -283,7 +435,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get wireless controller global settings."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/setting", vdom=vdom)
         except FortiOSError as exc:
@@ -292,6 +447,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_qos_profile_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -301,7 +467,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all wireless QoS profiles."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/qos-profile", vdom=vdom)
         except FortiOSError as exc:
@@ -310,6 +479,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_rf_analysis_get(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -319,7 +499,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get wireless RF analysis settings."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get("wireless-controller/rf-analysis", vdom=vdom)
         except FortiOSError as exc:
@@ -332,6 +515,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def wifi_hotspot20_profile_list(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -341,7 +535,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all Hotspot 2.0 (Passpoint) profiles."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get(
                 "wireless-controller.hotspot20/hs-profile", vdom=vdom
@@ -356,6 +553,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_wifi_managed_ap(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -365,7 +573,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get detailed status of all managed Access Points (online/offline, channel, clients)."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("wifi/managed_ap", vdom=vdom)
         except FortiOSError as exc:
@@ -382,6 +593,17 @@ def register(mcp: FastMCP) -> None:
             str | None,
             Field(default=None, description="Filter by SSID name."),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -391,7 +613,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """List all connected WiFi clients with their associated AP and signal strength."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {}
         if ap_serial:
             params["wtp"] = ap_serial
@@ -405,6 +630,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_wifi_rogue_ap(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -414,7 +650,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get list of detected rogue (unauthorized) Access Points."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("wifi/rogue_ap", vdom=vdom)
         except FortiOSError as exc:
@@ -423,6 +662,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_wifi_spectrum_analysis(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -432,7 +682,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get RF spectrum analysis data from APs that support it."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("wifi/spectrum", vdom=vdom)
         except FortiOSError as exc:
@@ -448,6 +701,17 @@ def register(mcp: FastMCP) -> None:
                 description="AP serial number. If not specified, returns all APs.",
             ),
         ] = None,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -457,7 +721,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get operational status (up/down, channel, TX power) for APs."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {}
         if wtp_id:
             params["wtp_id"] = wtp_id
@@ -469,6 +736,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_wifi_interfering_ap(
         ctx: Context,
+        fortigate: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -478,7 +756,10 @@ def register(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Get list of interfering (neighbor) Access Points detected on RF scan."""
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, fortigate)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.monitor_get("wifi/interfering_ap", vdom=vdom)
         except FortiOSError as exc:
