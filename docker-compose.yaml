@@ -27,8 +27,16 @@ services:
     # NOTE: the file must be readable by the container user (chmod 644 .env).
     volumes:
       - ./.env:/app/.env:ro
+      # Multi-device inventory. Uncomment together with FORTIOS_DEVICES_FILE
+      # in .env, and create devices.yaml first — Docker creates a directory in
+      # place of a missing bind-mount source.
+      #- ./devices.yaml:/app/devices.yaml:ro
 
     environment:
+      # Device inventory. Paths are container paths, so FORTIOS_DEVICES_FILE
+      # must match the mount above (e.g. /app/devices.yaml).
+      - FORTIOS_DEVICES_FILE=${FORTIOS_DEVICES_FILE:-}
+      - FORTIOS_DEFAULT_DEVICE=${FORTIOS_DEFAULT_DEVICE:-}
       - MCP_TRANSPORT=${MCP_TRANSPORT:-streamable-http}
       # Container-internal bind address. Deliberately NOT taken from .env:
       # anything other than 0.0.0.0 makes the published port unreachable.

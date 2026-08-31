@@ -7,17 +7,96 @@ yet covered by a specific tool module.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Annotated, Any
 
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field
 
+from devices import DeviceRegistry, UnknownDeviceError, client_for
 from fortios_client import FortiOSClient, FortiOSError
 
 
 def register(mcp: FastMCP) -> None:  # noqa: C901
     """Register all generic tools onto the FastMCP instance."""
+
+    # ------------------------------------------------------------------
+    # Device inventory
+    # ------------------------------------------------------------------
+
+    @mcp.tool()
+    async def fortios_devices_list(ctx: Context) -> dict[str, Any]:
+        """List the configured FortiGates that tools can target.
+
+        Every tool taking a `device` parameter accepts one of the names returned
+        here. API tokens are never included.
+        """
+        registry: DeviceRegistry = ctx.request_context.lifespan_context["devices"]
+        return {
+            "default_device": registry.default_name,
+            "count": len(registry.names()),
+            "devices": registry.describe(),
+        }
+
+    @mcp.tool()
+    async def fortios_devices_check(
+        ctx: Context,
+        devices: Annotated[
+            list[str] | None,
+            Field(
+                default=None,
+                description="Device names to check. Omit to check every device.",
+            ),
+        ] = None,
+        site: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Check only devices with this site value. Ignored when `devices` is given.",
+            ),
+        ] = None,
+    ) -> dict[str, Any]:
+        """Probe reachability and firmware of several FortiGates in parallel.
+
+        Read-only: calls monitor/system/status on each device. Use it to verify
+        an inventory or to see which firewalls are unreachable. A failure on one
+        device is reported for that device and does not abort the others.
+        """
+        registry: DeviceRegistry = ctx.request_context.lifespan_context["devices"]
+        try:
+            names = registry.select(devices, site)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
+
+        async def probe(name: str) -> dict[str, Any]:
+            try:
+                response = await registry.get(name).monitor_get("system/status")
+            except FortiOSError as exc:
+                return {"device": name, "reachable": False, "error": str(exc)}
+            except Exception as exc:  # transport errors, TLS failures, timeouts
+                return {
+                    "device": name,
+                    "reachable": False,
+                    "error": f"{type(exc).__name__}: {exc}",
+                }
+            results = response.get("results", {})
+            return {
+                "device": name,
+                "reachable": True,
+                "hostname": results.get("hostname"),
+                "model": results.get("model_name"),
+                "model_number": results.get("model_number"),
+                "version": response.get("version"),
+                "serial": response.get("serial"),
+            }
+
+        checked = await asyncio.gather(*(probe(n) for n in names))
+        return {
+            "checked": len(checked),
+            "reachable": sum(1 for r in checked if r["reachable"]),
+            "results": checked,
+        }
 
     # ------------------------------------------------------------------
     # CMDB generic tools  (/api/v2/cmdb/…)
@@ -63,6 +142,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description="Comma-separated list of fields to return. Reduces response size.",
             ),
         ] = None,
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -76,7 +166,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
         Covers any GET on /api/v2/cmdb/{resource_path}.
         Returns the full FortiOS JSON response including results array and metadata.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] = {}
         if filters:
             params["filter"] = filters
@@ -105,6 +198,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -117,7 +221,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any GET on /api/v2/cmdb/{resource}/{key}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_get(resource_path, vdom=vdom)
         except FortiOSError as exc:
@@ -146,6 +253,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -158,7 +276,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any POST on /api/v2/cmdb/{resource_path}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             body = json.loads(data)
         except json.JSONDecodeError as exc:
@@ -190,6 +311,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -202,7 +334,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any PUT on /api/v2/cmdb/{resource_path}/{key}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             body = json.loads(data)
         except json.JSONDecodeError as exc:
@@ -225,6 +360,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -237,7 +383,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any DELETE on /api/v2/cmdb/{resource_path}/{key}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         try:
             return await client.cmdb_delete(resource_path, vdom=vdom)
         except FortiOSError as exc:
@@ -271,6 +420,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 ),
             ),
         ] = None,
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -283,7 +443,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any GET on /api/v2/monitor/{monitor_path}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] | None = None
         if extra_params:
             try:
@@ -320,6 +483,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 ),
             ),
         ] = None,
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -332,7 +506,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any POST on /api/v2/monitor/{monitor_path}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         body_dict: dict[str, Any] = {}
         if body:
             try:
@@ -372,6 +549,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 ),
             ),
         ] = None,
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -384,7 +572,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers any GET on /api/v2/log/{log_path}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         params: dict[str, Any] | None = None
         if extra_params:
             try:
@@ -429,6 +620,17 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description="Optional JSON body for POST requests.",
             ),
         ] = None,
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Target FortiGate name from the device inventory. "
+                    "Defaults to the configured default device. "
+                    "Call fortios_devices_list to see the available names."
+                ),
+            ),
+        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -441,7 +643,10 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
 
         Covers all GET/POST on /api/v2/service/{service_path}.
         """
-        client: FortiOSClient = ctx.request_context.lifespan_context["client"]
+        try:
+            client: FortiOSClient = client_for(ctx, device)
+        except UnknownDeviceError as exc:
+            return {"error": str(exc)}
         if method.upper() == "POST":
             body_dict: dict[str, Any] = {}
             if body:
