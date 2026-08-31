@@ -26,6 +26,7 @@
   - [4. Run with MCP Inspector](#4-run-with-mcp-inspector)
   - [5. Install in Claude Desktop](#5-install-in-claude-desktop)
 - [HTTP Mode](#http-mode)
+- [Docker](#docker)
 - [Usage Examples](#usage-examples)
 - [Project Structure](#project-structure)
 - [Security Notes](#security-notes)
@@ -165,7 +166,158 @@ MCP_TRANSPORT=streamable-http MCP_PORT=8000 uv run server.py
 
 Connect via `http://localhost:8000/mcp`.
 
-This mode is useful for shared team setups or cloud-hosted deployments.
+This mode is useful for shared team setups or cloud-hosted deployments. Two
+environment variables secure it — both are optional and apply to HTTP mode only,
+never to stdio:
+
+| Variable | Purpose |
+|----------|---------|
+| `MCP_AUTH_TOKEN` | Requires `Authorization: Bearer <token>` on every request. Empty means unauthenticated (a startup warning is logged). |
+| `MCP_ALLOWED_HOSTS` | Extra `Host` header values accepted, for clients connecting via an IP or reverse-proxy hostname. Loopback is always allowed. |
+
+```bash
+MCP_TRANSPORT=streamable-http MCP_PORT=8000 \
+MCP_AUTH_TOKEN=$(openssl rand -hex 32) \
+MCP_ALLOWED_HOSTS='["10.0.0.5:8000"]' \
+  uv run server.py
+```
+
+See [Authentication](#authentication) and
+[Connecting from another host](#connecting-from-another-host) for details.
+
+### Connecting Claude Desktop to an HTTP server
+
+Claude Desktop cannot send a custom `Authorization` header to a remote MCP
+server directly, so bridge it with `mcp-remote` (requires Node.js):
+
+```json
+{
+  "mcpServers": {
+    "fortios": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://10.0.0.5:8000/mcp",
+        "--header",
+        "Authorization:${AUTH_HEADER}"
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer your-mcp-auth-token"
+      }
+    }
+  }
+}
+```
+
+The token goes in `env` rather than inline in `args` because Claude Desktop
+mangles spaces inside a single argument.
+
+If `mcp-remote` refuses a plain-HTTP URL to a non-localhost host, tunnel it and
+point the config at `http://127.0.0.1:8000/mcp` — loopback needs no
+`MCP_ALLOWED_HOSTS` entry:
+
+```bash
+ssh -N -L 8000:127.0.0.1:8000 user@10.0.0.5
+```
+
+---
+
+## Docker
+
+The repository ships a `Dockerfile` and `docker-compose.yaml` that run the server
+in **streamable-http** mode. All configuration comes from a single `.env` file:
+Compose reads it for variable substitution, and the same file is bind-mounted
+read-only to `/app/.env` inside the container, where `load_dotenv()` picks it up.
+
+```bash
+cp .env.example .env
+chmod 644 .env          # must be readable by the container user
+# edit .env: FORTIOS_HOST, FORTIOS_API_TOKEN, and MCP_PORT if 8000 is taken
+
+docker compose up -d --build
+```
+
+The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
+`MCP_PORT` you set).
+
+### Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MCP_PORT` | `8000` | Port the container listens on **and** the host port published — change it in `.env` only |
+| `MCP_BIND_ADDRESS` | `127.0.0.1` | Host **IP** the port is published on — no port here, `MCP_PORT` supplies it |
+| `MCP_TRANSPORT` | `streamable-http` | Transport used inside the container |
+| `MCP_AUTH_TOKEN` | *(empty)* | Bearer token required on every HTTP request; empty disables authentication |
+| `MCP_ALLOWED_HOSTS` | *(empty)* | Extra `Host` header values accepted (DNS rebinding protection) |
+
+### Authentication
+
+Set `MCP_AUTH_TOKEN` in `.env` to require a bearer token on every HTTP request:
+
+```bash
+openssl rand -hex 32          # generate a token
+```
+
+```dotenv
+MCP_AUTH_TOKEN=<your-token>
+```
+
+Clients then send `Authorization: Bearer <token>`; anything else gets
+`401 Unauthorized` with `WWW-Authenticate: Bearer`. The check runs ahead of MCP
+session handling, so a leaked session id is useless without the token. When
+`MCP_AUTH_TOKEN` is empty the server logs a warning at startup and serves
+unauthenticated — acceptable only on a loopback bind.
+
+Authentication applies to HTTP mode only; stdio (Claude Desktop) is unaffected.
+
+### Connecting from another host
+
+`Host` header validation (DNS rebinding protection) is enabled as soon as
+`MCP_ALLOWED_HOSTS` is set. List the value that appears in the **client's
+connection URL** — not the client's IP — as a JSON array or comma-separated
+list. Loopback is always allowed on top of the list.
+
+```dotenv
+MCP_BIND_ADDRESS=10.211.112.12
+MCP_ALLOWED_HOSTS=["10.211.112.12:8002"]
+```
+
+The port must match the port clients connect to, or requests are rejected with
+`421 Invalid Host header`. Use `["10.211.112.12:*"]` to accept any port, or a
+hostname (`["mcp.example.com"]`) when a reverse proxy sits in front. Leaving the
+variable empty disables the check, which is fine behind a loopback bind.
+
+To move the server to another port, edit one line and re-apply:
+
+```bash
+sed -i 's/^MCP_PORT=.*/MCP_PORT=8002/' .env
+docker compose up -d
+```
+
+### Operating
+
+```bash
+docker compose ps                 # health status and port mapping
+docker compose logs -f fortios-mcp
+docker compose down
+```
+
+> **Create `.env` before the first `up`.** If the file does not exist, Docker
+> creates a *directory* in its place and `load_dotenv()` finds nothing.
+
+> **Troubleshooting:** in HTTP mode the FortiGate client is created per MCP
+> session, so a bad or incomplete `.env` does **not** stop the container — it
+> starts, reports `healthy` (the healthcheck only probes the TCP port), and each
+> client session fails instead. If a client cannot connect, check
+> `docker compose logs fortios-mcp` for
+> `Required environment variable 'FORTIOS_HOST' is not set`. A successful
+> session logs `Connecting to FortiGate <host> (vdom=..., ssl-verify=...)`.
+
+> **Security:** the MCP endpoint exposes all 204+ tools, including firewall
+> policy create/delete. Never bind it beyond `127.0.0.1` without setting
+> `MCP_AUTH_TOKEN`. The `.env` file is never copied into the image (it is listed
+> in `.dockerignore`) — keep it out of version control too.
 
 ---
 
@@ -215,6 +367,8 @@ fortinet-mcp-server/
 ├── fortios_client.py      # Async HTTP client (CMDB/Monitor/Log/Service)
 ├── pyproject.toml         # Project metadata and dependencies
 ├── .env.example           # Environment variable template
+├── Dockerfile             # Multi-stage image (uv + python:3.12-slim)
+├── docker-compose.yaml    # HTTP-mode service, .env mounted to /app/.env
 ├── README.md              # This file
 └── tools/
     ├── __init__.py
@@ -237,6 +391,7 @@ fortinet-mcp-server/
 - The API token grants the same access level as its associated admin profile. Follow the **principle of least privilege** — create a restricted profile if you only need read access.
 - Set `FORTIOS_VERIFY_SSL=true` in production and ensure your FortiGate has a valid TLS certificate.
 - The server runs **locally over stdio** by default — it is not exposed over the network unless HTTP mode is enabled.
+- In HTTP mode, **always set `MCP_AUTH_TOKEN`** before binding beyond `127.0.0.1`. Without it every tool — including firewall policy create/delete — is reachable unauthenticated by anyone who can open the port. Set `MCP_ALLOWED_HOSTS` as well when clients connect via an IP or hostname, and rotate the token as you would the FortiOS one.
 - **Never commit your `.env` file or expose your API token** in logs, issues, or code.
 - Rotate your API token regularly and revoke it immediately if compromised.
 

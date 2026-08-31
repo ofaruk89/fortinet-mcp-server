@@ -15,18 +15,34 @@ Configuration (environment variables or .env file):
     FORTIOS_VDOM       — VDOM (default: root)
     FORTIOS_VERIFY_SSL — true/false (default: false for self-signed)
     FORTIOS_TIMEOUT    — HTTP timeout in seconds (default: 30)
+
+HTTP transport only (MCP_TRANSPORT=streamable-http):
+    MCP_HOST           — bind address (default: 127.0.0.1)
+    MCP_PORT           — bind port (default: 8000)
+    MCP_AUTH_TOKEN     — bearer token required on every HTTP request.
+                         Unset/empty leaves the endpoint UNAUTHENTICATED.
+    MCP_ALLOWED_HOSTS  — extra Host header values accepted for DNS rebinding
+                         protection, JSON array or comma-separated. Needed when
+                         clients connect via an IP or reverse-proxy hostname,
+                         e.g. ["10.211.112.12:8000"] or "mcp.example.com".
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+import secrets
 import sys
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
+from starlette.datastructures import Headers
+from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from fortios_client import FortiOSClient
 
@@ -79,6 +95,102 @@ def _get_config() -> dict:
         in ("1", "true", "yes"),
         "timeout": float(os.environ.get("FORTIOS_TIMEOUT", "30")),
     }
+
+
+# ─────────────────────────────────────────────────────────────────────
+# HTTP transport security (streamable-http only)
+# ─────────────────────────────────────────────────────────────────────
+
+
+class BearerAuthMiddleware:
+    """Require `Authorization: Bearer <token>` on every HTTP request.
+
+    Plain ASGI middleware rather than FastMCP's ``token_verifier``/``AuthSettings``
+    pair: the latter publishes OAuth 2.1 protected-resource metadata and points
+    401 responses at OAuth discovery, which makes clients attempt an OAuth flow
+    instead of simply sending the shared token.
+    """
+
+    def __init__(self, app: ASGIApp, token: str) -> None:
+        self.app = app
+        self._token = token
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        header = Headers(scope=scope).get("authorization", "")
+        scheme, _, credentials = header.partition(" ")
+
+        # compare_digest keeps the check constant-time; str.strip() first so a
+        # trailing newline in the client config is not treated as a mismatch.
+        if scheme.lower() != "bearer" or not secrets.compare_digest(
+            credentials.strip(), self._token
+        ):
+            logger.warning(
+                "Rejected unauthenticated request: %s %s",
+                scope.get("method", "?"),
+                scope.get("path", "?"),
+            )
+            response = JSONResponse(
+                {"error": "unauthorized", "detail": "Valid bearer token required."},
+                status_code=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+
+def _parse_allowed_hosts(raw: str) -> list[str]:
+    """Parse MCP_ALLOWED_HOSTS from a JSON array or a comma-separated string."""
+    raw = raw.strip()
+    if not raw:
+        return []
+    if raw.startswith("["):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            raise ValueError(
+                f"MCP_ALLOWED_HOSTS is not valid JSON: {raw!r}. "
+                'Use ["host:port"] or a comma-separated list.'
+            ) from None
+        if not isinstance(parsed, list):
+            raise ValueError("MCP_ALLOWED_HOSTS JSON must be an array of strings.")
+        return [str(h).strip() for h in parsed if str(h).strip()]
+    return [h.strip() for h in raw.split(",") if h.strip()]
+
+
+def _transport_security() -> TransportSecuritySettings | None:
+    """Build DNS rebinding protection settings from MCP_ALLOWED_HOSTS.
+
+    FastMCP auto-enables this protection only when bound to loopback, so a
+    container bound to 0.0.0.0 has it off unless configured here. Returning None
+    keeps that permissive default.
+    """
+    hosts = _parse_allowed_hosts(os.environ.get("MCP_ALLOWED_HOSTS", ""))
+    if not hosts:
+        return None
+
+    # Loopback stays allowed regardless, so same-host clients, curl checks and a
+    # reverse proxy on the Docker host keep working after the list is narrowed.
+    loopback = ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+    allowed_hosts = hosts + [h for h in loopback if h not in hosts]
+
+    # Browser-based clients send an Origin header; without matching entries the
+    # middleware would reject them with 403 even though the Host header is fine.
+    allowed_origins = [
+        f"{scheme}://{host}" for host in allowed_hosts for scheme in ("http", "https")
+    ]
+
+    logger.info("DNS rebinding protection enabled for hosts: %s", allowed_hosts)
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=allowed_hosts,
+        allowed_origins=allowed_origins,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -139,6 +251,7 @@ mcp = FastMCP(
         "For destructive operations (delete, policy changes), confirm with the user first."
     ),
     lifespan=lifespan,
+    transport_security=_transport_security(),
 )
 
 # ─────────────────────────────────────────────────────────────────────
@@ -164,14 +277,43 @@ logger.info("All 10 tool modules registered (204+ tools).")
 # ─────────────────────────────────────────────────────────────────────
 
 
+def _run_http() -> None:
+    """Serve streamable-http, optionally behind bearer authentication.
+
+    Replaces ``mcp.run(transport="streamable-http")`` (which builds the same
+    Starlette app and runs it under uvicorn) so the ASGI app can be wrapped
+    before it is served.
+    """
+    import uvicorn
+
+    host = os.environ.get("MCP_HOST", "127.0.0.1")
+    port = int(os.environ.get("MCP_PORT", "8000"))
+    logger.info("Starting FortiOS MCP Server on %s:%d (HTTP)", host, port)
+
+    app = mcp.streamable_http_app()
+
+    auth_token = os.environ.get("MCP_AUTH_TOKEN", "").strip()
+    if auth_token:
+        app = BearerAuthMiddleware(app, token=auth_token)
+        logger.info("Bearer authentication enabled (MCP_AUTH_TOKEN is set).")
+    else:
+        logger.warning(
+            "MCP_AUTH_TOKEN is not set — the HTTP endpoint is UNAUTHENTICATED. "
+            "Anyone able to reach %s:%d can invoke every tool, including "
+            "firewall policy changes. Set MCP_AUTH_TOKEN whenever this server "
+            "is reachable beyond localhost.",
+            host,
+            port,
+        )
+
+    uvicorn.run(app, host=host, port=port, log_level=mcp.settings.log_level.lower())
+
+
 def main() -> None:
     """Run the MCP server using stdio transport (default for Claude Desktop)."""
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport == "streamable-http":
-        host = os.environ.get("MCP_HOST", "127.0.0.1")
-        port = int(os.environ.get("MCP_PORT", "8000"))
-        logger.info("Starting FortiOS MCP Server on %s:%d (HTTP)", host, port)
-        mcp.run(transport="streamable-http")
+        _run_http()
     else:
         logger.info("Starting FortiOS MCP Server on stdio")
         mcp.run(transport="stdio")
