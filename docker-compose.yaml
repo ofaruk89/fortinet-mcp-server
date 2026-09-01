@@ -15,7 +15,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: fortios-mcp-server:1.0.0
+    image: fortios-mcp-server:1.1.0
     container_name: fortios-mcp
     restart: unless-stopped
 
