@@ -1,0 +1,48 @@
+# Dependabot alerts only fire on a published CVE. These are the routine version
+# updates: without them the container base image and the pinned actions go stale
+# between security advisories.
+#
+# Everything is grouped so a week produces one pull request per ecosystem rather
+# than one per package, and CI (1000+ tests) decides whether it is safe.
+
+version: 2
+updates:
+  # Python dependencies. `uv` keeps pyproject.toml and uv.lock in step; a bare
+  # `pip` ecosystem would update the manifest and leave the lockfile behind.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      python-runtime:
+        applies-to: version-updates
+        patterns: ["*"]
+        exclude-patterns: ["pyright", "pytest*", "ruff"]
+      python-dev:
+        applies-to: version-updates
+        patterns: ["pyright", "pytest*", "ruff"]
+    ignore:
+      # This codebase targets the v1 API (mcp.server.fastmcp.FastMCP); 2.x
+      # renamed it to MCPServer. Migrating is a deliberate piece of work, not
+      # something to take as an automatic bump.
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
+
+  # Base image in the Dockerfile — the published container inherits its CVEs.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+
+  # Actions used by ci.yml and release.yml.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      actions:
+        patterns: ["*"]
