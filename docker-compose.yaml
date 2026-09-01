@@ -15,7 +15,7 @@ services:
     # Pulled by default; `docker compose build` (or `up --build`) overrides it
     # with a local build from this Dockerfile. Also on GHCR as
     # ghcr.io/ofaruk89/fortinet-mcp-server — set FORTIOS_MCP_IMAGE to switch.
-    image: ${FORTIOS_MCP_IMAGE:-omerfarukgul/fortinet-mcp-server:1.1.0}
+    image: ${FORTIOS_MCP_IMAGE:-omerfarukgul/fortinet-mcp-server:1.1.1}
     build:
       context: .
       dockerfile: Dockerfile
