@@ -38,7 +38,7 @@
 - [Quick Start](#quick-start)
   - [1. Create API Token on FortiGate](#1-create-api-token-on-fortigate)
   - [2. Install dependencies](#2-install-dependencies)
-  - [3. Configure environment](#3-configure-environment)
+  - [3. Configure your FortiGates](#3-configure-your-fortigates)
   - [4. Run with MCP Inspector](#4-run-with-mcp-inspector)
   - [5. Install in Claude Desktop](#5-install-in-claude-desktop)
 - [Multiple Devices](#multiple-devices)
@@ -118,21 +118,33 @@ uv sync
 pip install -e .
 ```
 
-### 3. Configure environment
+### 3. Configure your FortiGates
 
 ```bash
+cp devices.example.yaml devices.yaml
 cp .env.example .env
 ```
 
-Edit `.env`:
+Every FortiGate goes in `devices.yaml`, whether you have one or fifty:
+
+```yaml
+devices:
+  - name: fw-hq-01
+    host: https://fw-hq-01.example.com
+    api_token: ${FW_HQ_01_TOKEN}
+    verify_ssl: true
+    default: true
+```
+
+and its token in `.env`, so the inventory holds no secrets:
 
 ```dotenv
-FORTIOS_HOST=https://192.168.1.1
-FORTIOS_API_TOKEN=your-token-here
-FORTIOS_VDOM=root
-FORTIOS_VERIFY_SSL=false
-FORTIOS_TIMEOUT=30
+FW_HQ_01_TOKEN=your-token-here
 ```
+
+Writing the token straight into `devices.yaml` works too — the file is
+git-ignored and never enters the Docker image either way. See
+[Multiple Devices](#multiple-devices) for every field.
 
 ### 4. Run with MCP Inspector
 
@@ -159,15 +171,15 @@ Or manually add to `claude_desktop_config.json`:
         "python", "server.py"
       ],
       "env": {
-        "FORTIOS_HOST": "https://192.168.1.1",
-        "FORTIOS_API_TOKEN": "your-api-token",
-        "FORTIOS_VDOM": "root",
-        "FORTIOS_VERIFY_SSL": "false"
+        "FW_HQ_01_TOKEN": "your-api-token"
       }
     }
   }
 }
 ```
+
+`--directory` is also where `devices.yaml` is read from, so the inventory needs
+no extra configuration; the `env` block carries only the tokens it references.
 
 > On **macOS**, `claude_desktop_config.json` is at `~/Library/Application Support/Claude/claude_desktop_config.json`.  
 > On **Windows**, it is at `%APPDATA%\Claude\claude_desktop_config.json`.
@@ -195,8 +207,14 @@ uses `device` for the egress interface of a static route
 
 ### Inventory
 
-Define the fleet in a YAML (or JSON) file and point `FORTIOS_DEVICES_FILE` at
-it. Start from [`devices.example.yaml`](devices.example.yaml):
+Every FortiGate — one or fifty — is declared in `devices.yaml`. There is no
+second way to configure a device: the same file and the same format whatever
+the size of the estate. Start from
+[`devices.example.yaml`](devices.example.yaml):
+
+```bash
+cp devices.example.yaml devices.yaml
+```
 
 ```yaml
 devices:
@@ -216,16 +234,17 @@ devices:
     timeout: 45
 ```
 
-Keep the tokens in `.env` and reference them from the inventory, so the
-inventory file itself holds no secrets:
+The server reads `./devices.yaml`, which is `/app/devices.yaml` in the
+container. Set `FORTIOS_DEVICES_FILE` only to use another path.
+
+Each FortiGate issues its own API token, so every device needs its own. Keep
+them in `.env` and reference them as `${VAR}`, so the inventory holds no
+secrets:
 
 ```dotenv
-FORTIOS_DEVICES_FILE=./devices.yaml
 FW_HQ_01_TOKEN=...
 FW_BRANCH_01_TOKEN=...
 ```
-
-Each FortiGate issues its own API token, so every device needs its own.
 
 | Field | Default | Purpose |
 |-------|---------|---------|
@@ -240,6 +259,9 @@ Each FortiGate issues its own API token, so every device needs its own.
 | `description` | — | Free text, returned by `fortios_devices_list` |
 | `default` | `false` | Targeted when a call omits `fortigate` |
 
+`devices.yaml` holds one API token per firewall unless you use `${VAR}`
+throughout: it is git-ignored and excluded from the Docker image, like `.env`.
+
 ### Selecting groups of devices
 
 `site` and `tags` are not just labels — the fleet tools take them to narrow
@@ -248,20 +270,6 @@ which devices they act on. A device must carry **every** requested tag, so
 everything edge-ish, and `site` combines with it. `fortios_devices_list`
 reports the values actually in use under `selectable`, so a model can discover
 them before selecting.
-
-For a handful of devices the same structure can live inline in `.env` instead,
-as JSON:
-
-```dotenv
-FORTIOS_DEVICES=[{"name":"fw-hq-01","host":"https://fw-hq-01.example.com","api_token":"...","default":true}]
-```
-
-If neither variable is set, the original `FORTIOS_HOST` / `FORTIOS_API_TOKEN`
-pair is registered as a single device — **existing single-device deployments
-need no changes**. Name it with `FORTIOS_DEVICE_NAME` (default: `default`).
-
-`devices.yaml` holds one API token per firewall: it is git-ignored and excluded
-from the Docker image, exactly like `.env`.
 
 ### Choosing the default
 
@@ -286,22 +294,9 @@ address the inventory rather than a single device.
 
 ### Docker
 
-Mount the inventory next to `.env` and point the variable at the container path:
-
-```yaml
-volumes:
-  - ./.env:/app/.env:ro
-  - ./devices.yaml:/app/devices.yaml:ro
-```
-
-```dotenv
-FORTIOS_DEVICES_FILE=/app/devices.yaml
-FW_HQ_01_TOKEN=...
-```
-
-The volume line is present but commented out in `docker-compose.yaml`. Create
-`devices.yaml` before uncommenting it — Docker creates a directory in place of a
-missing bind-mount source.
+`docker-compose.yaml` already mounts `devices.yaml` at `/app/devices.yaml` and
+`.env` at `/app/.env`. Create both before the first `up` and there is nothing
+else to configure.
 
 ---
 
@@ -381,19 +376,25 @@ read-only to `/app/.env` inside the container, where `load_dotenv()` picks it up
 
 ```bash
 cp .env.example .env
-chmod 644 .env          # must be readable by the container user
-# edit .env: FORTIOS_HOST, FORTIOS_API_TOKEN, and MCP_PORT if 8000 is taken
+cp devices.example.yaml devices.yaml
+chmod 644 .env devices.yaml     # must be readable by the container user
+
+# devices.yaml: your FortiGates
+# .env:         their API tokens, and MCP_PORT if 8000 is taken
 
 docker compose up -d
 ```
 
+Create `devices.yaml` before the first `up`: Docker creates a directory in
+place of a missing bind-mount source, and the server then finds no inventory.
+
 `docker compose up` pulls the published image; `--build` builds from source
 instead. The image is published to both registries on every version tag, for
-`linux/amd64` and `linux/arm64`, tagged `1.1.1`, `1.1`, `1` and `latest`:
+`linux/amd64` and `linux/arm64`, tagged `2.0.0`, `2.0`, `2` and `latest`:
 
 ```bash
-docker pull omerfarukgul/fortinet-mcp-server:1.1.1          # Docker Hub
-docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.1      # GHCR
+docker pull omerfarukgul/fortinet-mcp-server:2.0.0          # Docker Hub
+docker pull ghcr.io/ofaruk89/fortinet-mcp-server:2.0.0      # GHCR
 ```
 
 Besides the release tags:
@@ -438,7 +439,7 @@ Compose uses Docker Hub by default. Point `FORTIOS_MCP_IMAGE` at whichever you
 prefer — GHCR avoids Docker Hub's anonymous pull rate limits:
 
 ```dotenv
-FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:1.1.1
+FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:2.0.0
 ```
 
 The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
@@ -453,22 +454,12 @@ The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
 | `MCP_TRANSPORT` | `streamable-http` | Transport used inside the container |
 | `MCP_AUTH_TOKEN` | *(empty)* | Bearer token required on every HTTP request; empty disables authentication |
 | `MCP_ALLOWED_HOSTS` | *(empty)* | Extra `Host` header values accepted (DNS rebinding protection) |
-| `FORTIOS_MCP_IMAGE` | published `1.1.1` | Image to run — pin a tag, switch registry, or use a local build |
+| `FORTIOS_MCP_IMAGE` | published `2.0.0` | Image to run — pin a tag, switch registry, or use a local build |
 | `FORTIOS_MCP_CONTAINER_NAME` | `fortios-mcp` | Container name; change it to run a second copy beside the live one |
 
-Machine-specific additions — a `devices.yaml` mount, an extra volume — belong in
-`docker-compose.override.yml`, which Compose merges automatically and which is
-git-ignored like `.env`. The inventory mount is commented out in the committed
-`docker-compose.yaml` on purpose: without a `devices.yaml` present, Docker would
-create a directory in its place.
-
-```yaml
-# docker-compose.override.yml
-services:
-  fortios-mcp:
-    volumes:
-      - ./devices.yaml:/app/devices.yaml:ro
-```
+Machine-specific additions — an extra volume, a different memory limit — belong
+in `docker-compose.override.yml`, which Compose merges automatically and which
+is git-ignored like `.env`.
 
 ### Authentication
 
@@ -522,16 +513,17 @@ docker compose logs -f fortios-mcp
 docker compose down
 ```
 
-> **Create `.env` before the first `up`.** If the file does not exist, Docker
-> creates a *directory* in its place and `load_dotenv()` finds nothing.
+> **Create `.env` and `devices.yaml` before the first `up`.** If either is
+> missing, Docker creates a *directory* in its place and the server starts with
+> no configuration.
 
-> **Troubleshooting:** in HTTP mode the FortiGate client is created per MCP
-> session, so a bad or incomplete `.env` does **not** stop the container — it
+> **Troubleshooting:** in HTTP mode the FortiGate clients are created per MCP
+> session, so a bad or missing inventory does **not** stop the container — it
 > starts, reports `healthy` (the healthcheck only probes the TCP port), and each
 > client session fails instead. If a client cannot connect, check
-> `docker compose logs fortios-mcp` for
-> `Required environment variable 'FORTIOS_HOST' is not set`. A successful
-> session logs `Connecting to FortiGate <host> (vdom=..., ssl-verify=...)`.
+> `docker compose logs fortios-mcp` for `No device inventory at ...`. A
+> successful session logs one `Device '<name>' ready: <host> ...` line per
+> device.
 
 > **Security:** the MCP endpoint exposes all 204+ tools, including firewall
 > policy create/delete. Never bind it beyond `127.0.0.1` without setting
@@ -612,7 +604,7 @@ fortinet-mcp-server/
 ## Security Notes
 
 - The API token grants the same access level as its associated admin profile. Follow the **principle of least privilege** — create a restricted profile if you only need read access.
-- Set `FORTIOS_VERIFY_SSL=true` in production and ensure your FortiGate has a valid TLS certificate.
+- Set `verify_ssl: true` per device in `devices.yaml` for production, and ensure the FortiGate has a valid TLS certificate.
 - The server runs **locally over stdio** by default — it is not exposed over the network unless HTTP mode is enabled.
 - In HTTP mode, **always set `MCP_AUTH_TOKEN`** before binding beyond `127.0.0.1`. Without it every tool — including firewall policy create/delete — is reachable unauthenticated by anyone who can open the port. Set `MCP_ALLOWED_HOSTS` as well when clients connect via an IP or hostname, and rotate the token as you would the FortiOS one.
 - **Never commit your `.env` file or expose your API token** in logs, issues, or code.

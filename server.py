@@ -9,21 +9,13 @@ Architecture:
 - Specific typed tools (cover the most important 150+ operations)
 - Async HTTP client with Bearer-token authentication
 
+Every FortiGate is declared in devices.yaml — see devices.example.yaml. Host,
+VDOM, TLS and timeout are per-device fields there; only the API tokens live in
+the environment, referenced from the inventory as ${VAR}.
+
 Configuration (environment variables or .env file):
-
-Device inventory — first source that is set wins:
-    FORTIOS_DEVICES_FILE   — path to a YAML/JSON inventory of FortiGates
-    FORTIOS_DEVICES        — the same structure inline as JSON
-    FORTIOS_HOST + FORTIOS_API_TOKEN — single-device fallback (see below)
-    FORTIOS_DEFAULT_DEVICE — device used when a tool call omits `device`
-
-Single-device variables (also the defaults for the fallback inventory):
-    FORTIOS_HOST       — FortiGate URL (e.g. https://192.168.1.1)
-    FORTIOS_API_TOKEN  — API Bearer token
-    FORTIOS_VDOM       — VDOM (default: root)
-    FORTIOS_VERIFY_SSL — true/false (default: false for self-signed)
-    FORTIOS_TIMEOUT    — HTTP timeout in seconds (default: 30)
-    FORTIOS_DEVICE_NAME— name for the fallback device (default: "default")
+    FORTIOS_DEVICES_FILE   — inventory path (default: ./devices.yaml)
+    FORTIOS_DEFAULT_DEVICE — device used when a tool call omits `fortigate`
 
 HTTP transport only (MCP_TRANSPORT=streamable-http):
     MCP_HOST           — bind address (default: 127.0.0.1)

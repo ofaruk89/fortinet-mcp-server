@@ -42,14 +42,9 @@ def _clear_inventory_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep the developer's own .env out of these tests."""
     for var in (
         "FORTIOS_DEVICES_FILE",
-        "FORTIOS_DEVICES",
         "FORTIOS_DEFAULT_DEVICE",
         "FORTIOS_HOST",
         "FORTIOS_API_TOKEN",
-        "FORTIOS_VDOM",
-        "FORTIOS_VERIFY_SSL",
-        "FORTIOS_TIMEOUT",
-        "FORTIOS_DEVICE_NAME",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -131,42 +126,64 @@ async def test_per_device_vdom_reaches_the_request(httpx_mock: HTTPXMock) -> Non
     assert request.url.params["vdom"] == "dmz"
 
 
-def test_inline_json_inventory(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FORTIOS_DEVICES", json.dumps(TWO_DEVICES))
+def test_one_device_uses_the_same_file_as_many(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A single FortiGate is declared exactly like a fleet — no second format."""
+    path = tmp_path / "devices.yaml"
+    path.write_text(
+        """
+devices:
+  - name: fw-hq-01
+    host: https://fw-hq-01.test
+    api_token: t
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("FORTIOS_DEVICES_FILE", str(path))
 
     result = load_devices()
 
-    assert [d.name for d in result] == ["aef01", "bef01"]
-    assert resolve_default(result) == "aef01"
+    assert [d.name for d in result] == ["fw-hq-01"]
+    assert result[0].vdom == "root"
+    assert resolve_default(result) == "fw-hq-01"
 
 
-def test_single_device_env_fallback_stays_supported(
-    monkeypatch: pytest.MonkeyPatch,
+def test_inventory_path_defaults_to_devices_yaml(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("FORTIOS_HOST", "https://fw.test")
-    monkeypatch.setenv("FORTIOS_API_TOKEN", "token")
-    monkeypatch.setenv("FORTIOS_VDOM", "vd1")
-    monkeypatch.setenv("FORTIOS_VERIFY_SSL", "true")
+    (tmp_path / "devices.yaml").write_text(
+        "devices:\n  - {name: fw, host: 'https://fw.test', api_token: t}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
 
-    result = load_devices()
-
-    assert len(result) == 1
-    assert result[0].name == "default"
-    assert result[0].vdom == "vd1"
-    assert result[0].verify_ssl is True
-    assert resolve_default(result) == "default"
+    assert [d.name for d in load_devices()] == ["fw"]
 
 
-def test_missing_configuration_names_every_option(
-    monkeypatch: pytest.MonkeyPatch,
+def test_missing_inventory_says_how_to_create_one(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.chdir(tmp_path)
+
     with pytest.raises(DeviceConfigError) as excinfo:
         load_devices()
 
     message = str(excinfo.value)
-    assert "FORTIOS_DEVICES_FILE" in message
-    assert "FORTIOS_DEVICES" in message
-    assert "FORTIOS_HOST" in message
+    assert "devices.example.yaml" in message
+    assert "devices.yaml" in message
+
+
+def test_host_and_token_environment_variables_are_not_a_configuration_path(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The old single-device variables must not quietly configure a device."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("FORTIOS_HOST", "https://fw.test")
+    monkeypatch.setenv("FORTIOS_API_TOKEN", "token")
+
+    with pytest.raises(DeviceConfigError):
+        load_devices()
 
 
 @pytest.mark.parametrize(
@@ -181,9 +198,11 @@ def test_missing_configuration_names_every_option(
     ],
 )
 def test_invalid_device_is_rejected_with_its_name(
-    monkeypatch: pytest.MonkeyPatch, entry: dict[str, Any], expected: str
+    tmp_path, monkeypatch: pytest.MonkeyPatch, entry: dict[str, Any], expected: str
 ) -> None:
-    monkeypatch.setenv("FORTIOS_DEVICES", json.dumps([entry]))
+    path = tmp_path / "devices.yaml"
+    path.write_text(json.dumps({"devices": [entry]}), encoding="utf-8")
+    monkeypatch.setenv("FORTIOS_DEVICES_FILE", str(path))
 
     with pytest.raises(DeviceConfigError) as excinfo:
         load_devices()
@@ -192,9 +211,13 @@ def test_invalid_device_is_rejected_with_its_name(
     assert expected in str(excinfo.value)
 
 
-def test_duplicate_names_are_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_duplicate_names_are_rejected(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     duplicated = TWO_DEVICES + [{**TWO_DEVICES[0], "default": False}]
-    monkeypatch.setenv("FORTIOS_DEVICES", json.dumps(duplicated))
+    path = tmp_path / "devices.yaml"
+    path.write_text(json.dumps({"devices": duplicated}), encoding="utf-8")
+    monkeypatch.setenv("FORTIOS_DEVICES_FILE", str(path))
 
     with pytest.raises(DeviceConfigError, match="Duplicate device names.*aef01"):
         load_devices()
