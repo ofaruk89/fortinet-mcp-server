@@ -389,15 +389,22 @@ docker compose up -d
 
 `docker compose up` pulls the published image; `--build` builds from source
 instead. The image is published to both registries on every version tag, for
-`linux/amd64` and `linux/arm64`, tagged `1.1.0`, `1.1`, `1` and `latest`:
+`linux/amd64` and `linux/arm64`, tagged `1.1.1`, `1.1`, `1` and `latest`:
 
 ```bash
-docker pull omerfarukgul/fortinet-mcp-server:1.1.0          # Docker Hub
-docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0      # GHCR
+docker pull omerfarukgul/fortinet-mcp-server:1.1.1          # Docker Hub
+docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.1      # GHCR
 ```
 
-`edge` tracks the latest `master` and `sha-<commit>` pins one build, both
-published on every push. `latest` only ever moves to a released version.
+Besides the release tags:
+
+| Tag | What it is |
+|-----|------------|
+| `edge` | The latest `master`, published on every push that touches the image |
+| `sha-<commit>` | One specific build. **Pruned to the ten most recent** — pin a release tag for anything long-lived |
+| `pr-<number>` | A pull request from a branch in this repository, GHCR only, removed when the PR closes |
+
+`latest` only ever moves to a released version, never to `edge`.
 
 ### Trying edge alongside the running server
 
@@ -431,7 +438,7 @@ Compose uses Docker Hub by default. Point `FORTIOS_MCP_IMAGE` at whichever you
 prefer — GHCR avoids Docker Hub's anonymous pull rate limits:
 
 ```dotenv
-FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0
+FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:1.1.1
 ```
 
 The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
@@ -446,6 +453,22 @@ The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
 | `MCP_TRANSPORT` | `streamable-http` | Transport used inside the container |
 | `MCP_AUTH_TOKEN` | *(empty)* | Bearer token required on every HTTP request; empty disables authentication |
 | `MCP_ALLOWED_HOSTS` | *(empty)* | Extra `Host` header values accepted (DNS rebinding protection) |
+| `FORTIOS_MCP_IMAGE` | published `1.1.1` | Image to run — pin a tag, switch registry, or use a local build |
+| `FORTIOS_MCP_CONTAINER_NAME` | `fortios-mcp` | Container name; change it to run a second copy beside the live one |
+
+Machine-specific additions — a `devices.yaml` mount, an extra volume — belong in
+`docker-compose.override.yml`, which Compose merges automatically and which is
+git-ignored like `.env`. The inventory mount is commented out in the committed
+`docker-compose.yaml` on purpose: without a `devices.yaml` present, Docker would
+create a directory in its place.
+
+```yaml
+# docker-compose.override.yml
+services:
+  fortios-mcp:
+    volumes:
+      - ./devices.yaml:/app/devices.yaml:ro
+```
 
 ### Authentication
 
