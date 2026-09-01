@@ -1,0 +1,107 @@
+name: PR image
+
+# Builds an image for a pull request so the change can be run before merging:
+#
+#   docker pull ghcr.io/<owner>/fortinet-mcp-server:pr-42
+#
+# GHCR only and amd64 only — this is a throwaway build for review feedback, not
+# a release, so Docker Hub stays free of pr-* tags and there is no wait for
+# emulated arm64. The tag is deleted when the pull request closes.
+#
+# Fork pull requests are skipped on purpose: they run with a read-only token and
+# no secrets, so a push would fail, and building an image from unreviewed code
+# under this repository's name is not something to do automatically.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  build:
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ github.repository }}:pr-${{ github.event.pull_request.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Summarise
+        run: |
+          {
+            echo "### Image for this pull request"
+            echo
+            echo '```bash'
+            echo "docker pull ghcr.io/${{ github.repository }}:pr-${{ github.event.pull_request.number }}"
+            echo '```'
+            echo
+            echo "Rebuilt on every push to the branch. Removed when the PR closes."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Delete the pr-* image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          TAG: pr-${{ github.event.pull_request.number }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+
+          token, owner, tag = os.environ["GH_TOKEN"], os.environ["OWNER"], os.environ["TAG"]
+          api = f"https://api.github.com/users/{owner}/packages/container/fortinet-mcp-server"
+          hdr = {"Authorization": f"Bearer {token}",
+                 "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28"}
+
+          def request(url, method="GET"):
+              req = urllib.request.Request(url, method=method, headers=hdr)
+              with urllib.request.urlopen(req) as r:
+                  body = r.read()
+                  return json.loads(body) if body else None
+
+          try:
+              versions = request(f"{api}/versions?per_page=100")
+          except urllib.error.HTTPError as exc:
+              print(f"::warning::cannot list versions: HTTP {exc.code}")
+              raise SystemExit(0)
+
+          for v in versions or []:
+              tags = v.get("metadata", {}).get("container", {}).get("tags", [])
+              # Only if this tag is the version's sole tag — otherwise the same
+              # image is also a release or edge build and must survive.
+              if tags == [tag]:
+                  try:
+                      request(f"{api}/versions/{v['id']}", method="DELETE")
+                      print(f"deleted {tag}")
+                  except urllib.error.HTTPError as exc:
+                      print(f"::warning::cannot delete {tag}: HTTP {exc.code}")
+                  raise SystemExit(0)
+          print(f"{tag} not found; nothing to delete")
+          PY

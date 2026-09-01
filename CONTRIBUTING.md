@@ -204,6 +204,28 @@ release build.
 To rebuild an existing tag (a base image security update, say), use
 **Actions → Release → Run workflow** and give it the tag, e.g. `v1.1.0`.
 
+### Trying a pull request before merging
+
+A pull request from a branch in this repository gets its own image, rebuilt on
+every push to the branch:
+
+```bash
+docker pull ghcr.io/ofaruk89/fortinet-mcp-server:pr-42
+```
+
+The pull command appears in the **PR image** run summary. GHCR only, amd64
+only — a throwaway build for review, so Docker Hub stays free of `pr-*` tags.
+The tag is deleted when the pull request closes. Pull requests from forks are
+skipped: they run with a read-only token and no secrets.
+
+### Image retention
+
+`sha-<commit>` accumulates one tag per master build. The **Prune sha images**
+workflow keeps the ten most recent and runs weekly; run it from the Actions tab
+to prune sooner, with `dry_run` to see what it would remove first. It only
+touches versions whose every tag is a `sha-*` tag, so releases, `latest`,
+`edge` and the untagged per-platform manifests they point at are left alone.
+
 ### Registry credentials
 
 GHCR uses the workflow's own `GITHUB_TOKEN`; nothing to configure. Docker Hub
