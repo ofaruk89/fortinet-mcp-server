@@ -1,0 +1,31 @@
+name: Edge image
+
+# Publishes the `edge` tag from master so merged work can be pulled without
+# cutting a release. The build itself lives in release.yml; this file exists
+# only to own the master trigger, because a paths-ignore filter here would also
+# apply to tag pushes if both triggers shared one workflow — and a path filter
+# can make a tag push skip its release build entirely.
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      # Nothing here reaches the image or the tests.
+      - "**/*.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".env.example"
+      - "devices.example.yaml"
+      - ".github/dependabot.yml"
+      - ".github/labels.yml"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/PULL_REQUEST_TEMPLATE.md"
+
+jobs:
+  publish:
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit

@@ -196,6 +196,11 @@ pinning. So merging a few features and pulling
 `ghcr.io/ofaruk89/fortinet-mcp-server:edge` is enough to try them — no version
 bump, no tag, and `latest` keeps pointing at the newest actual release.
 
+Documentation-only pushes skip the build; see the `paths-ignore` list in
+`.github/workflows/edge.yml`. It lives in its own workflow because a path
+filter on a shared trigger would also apply to tag pushes, where it can skip a
+release build.
+
 To rebuild an existing tag (a base image security update, say), use
 **Actions → Release → Run workflow** and give it the tag, e.g. `v1.1.0`.
 
