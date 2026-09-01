@@ -10,6 +10,10 @@ on:
 jobs:
   labeler:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Labels are managed through the issues API.
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - name: Sync repository labels

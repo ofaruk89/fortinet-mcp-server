@@ -32,6 +32,8 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
 
   publish:
     needs: test
