@@ -19,7 +19,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fortios-mcp
+    # Overridable so a second copy — an edge or PR image, say — can run beside
+    # the live one: FORTIOS_MCP_CONTAINER_NAME=fortios-mcp-edge
+    container_name: ${FORTIOS_MCP_CONTAINER_NAME:-fortios-mcp}
     restart: unless-stopped
 
     # The .env file is mounted read-only rather than passed via env_file, so
