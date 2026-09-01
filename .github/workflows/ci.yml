@@ -8,6 +8,9 @@ on:
     branches:
       - master
   workflow_dispatch:
+  # Lets the release workflow gate publishing on these same checks instead of
+  # duplicating them.
+  workflow_call:
 
 jobs:
   test-and-lint:
