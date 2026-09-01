@@ -15,6 +15,7 @@ Thank you for your interest in contributing! This document explains how to propo
 - [Pull Request Guidelines](#pull-request-guidelines)
 - [Reporting Bugs](#reporting-bugs)
 - [Requesting Features](#requesting-features)
+- [Releasing](#releasing)
 - [Security Vulnerabilities](#security-vulnerabilities)
 
 ---
@@ -156,6 +157,53 @@ Open an issue using the **Feature Request** template and describe:
 - The FortiOS API endpoint(s) you want to expose
 - Your use case / motivation
 - Any relevant Fortinet documentation links
+
+---
+
+## Releasing
+
+Maintainer checklist. Pushing a `v*` tag is what publishes the image — the
+workflow runs the full CI suite first and only builds if it passes.
+
+1. Merge everything into `master` and confirm CI is green.
+2. Bump `version` in `pyproject.toml`, and the image tag in
+   `docker-compose.yaml` so they do not drift.
+3. Add the release to `CHANGELOG.md` under a new version heading, and update
+   the link definitions at the bottom.
+4. Run `uv lock` so the lockfile records the new version, then commit.
+5. Tag and push:
+
+   ```bash
+   git tag -a v1.2.0 -m "v1.2.0 — short summary"
+   git push origin master v1.2.0
+   ```
+
+6. Watch the run under **Actions → Release**. It publishes `1.2.0`, `1.2`, `1`
+   and `latest` to both GHCR and Docker Hub, for `linux/amd64` and
+   `linux/arm64`.
+7. Write the GitHub release notes at **Releases → Draft a new release**,
+   choosing the tag you just pushed. Attach the build artifacts if you want
+   them there:
+
+   ```bash
+   uv build -o dist
+   ```
+
+### Publishing an image without cutting a release
+
+Every push to `master` publishes the `edge` tag, plus `sha-<commit>` for
+pinning. So merging a few features and pulling
+`ghcr.io/ofaruk89/fortinet-mcp-server:edge` is enough to try them — no version
+bump, no tag, and `latest` keeps pointing at the newest actual release.
+
+To rebuild an existing tag (a base image security update, say), use
+**Actions → Release → Run workflow** and give it the tag, e.g. `v1.1.0`.
+
+### Registry credentials
+
+GHCR uses the workflow's own `GITHUB_TOKEN`; nothing to configure. Docker Hub
+needs the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets — with
+them absent the workflow still publishes to GHCR and says so in the run summary.
 
 ---
 

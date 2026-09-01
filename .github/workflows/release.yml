@@ -1,10 +1,16 @@
 name: Release
 
-# Publishes a container image when a version tag is pushed. Tests run first —
-# a tag that cannot pass CI should not become an image anyone can pull.
+# Publishes a container image. Tests run first — nothing that cannot pass CI
+# should become an image anyone can pull.
+#
+#   push a v* tag   -> 1.2.3, 1.2, 1, latest   (a release)
+#   push to master  -> edge                    (latest master, for trying it out)
+#   either          -> sha-<commit>            (immutable, for pinning)
 
 on:
   push:
+    branches:
+      - master
     tags:
       - "v*"
   workflow_dispatch:
@@ -71,10 +77,16 @@ jobs:
           # `value` is explicit because on workflow_dispatch the ref is the
           # branch, not the tag, and the semver patterns would find no version
           # to parse. On a tag push inputs.tag is empty and ref_name is the tag.
+          #
+          # The semver entries are disabled on a branch push, where there is no
+          # version to parse — `edge` covers that case instead, and never takes
+          # `latest`, which stays on the newest release.
           tags: |
-            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }}
-            type=semver,pattern={{major}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }},enable=${{ inputs.tag != '' || startsWith(github.ref, 'refs/tags/') }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }},enable=${{ inputs.tag != '' || startsWith(github.ref, 'refs/tags/') }}
+            type=semver,pattern={{major}},value=${{ inputs.tag || github.ref_name }},enable=${{ inputs.tag != '' || startsWith(github.ref, 'refs/tags/') }}
+            type=edge,branch=master
+            type=sha,format=short
           labels: |
             org.opencontainers.image.title=FortiOS MCP Server
             org.opencontainers.image.description=MCP server for Fortinet FortiOS — multi-device, containerized, authenticated HTTP transport
