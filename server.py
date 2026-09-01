@@ -78,7 +78,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     stream=sys.stderr,
 )
-logger = logging.getLogger("fortios_mcp")
+logger = logging.getLogger("fortios_mcp")  # pr-image check
 
 
 # ─────────────────────────────────────────────────────────────────────
