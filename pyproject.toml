@@ -1,14 +1,26 @@
 [project]
 name = "fortios-mcp-server"
-version = "1.0.0"
-description = "MCP Server for Fortinet FortiOS 7.6.6 REST API"
+version = "1.1.0"
+description = "MCP server for Fortinet FortiOS — multi-device, containerized, authenticated HTTP transport"
 authors = [
     {name = "Paolo Amato", email = "paoloamato1313@gmail.com"}
+]
+maintainers = [
+    {name = "Omer Faruk GUL", email = "ofaruk89@gmail.com"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
-keywords = ["mcp", "fortinet", "fortios", "firewall", "llm", "claude"]
+keywords = [
+    "mcp",
+    "fortinet",
+    "fortios",
+    "fortigate",
+    "firewall",
+    "network-automation",
+    "llm",
+    "claude",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
