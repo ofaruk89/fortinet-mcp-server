@@ -29,16 +29,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_ipsec_phase1_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -60,18 +59,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase1_get(
         ctx: Context,
-        name: Annotated[str, Field(description="Phase 1 tunnel name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Phase 1 tunnel name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -95,6 +93,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase1_create(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         name: Annotated[str, Field(description="Tunnel name (unique identifier).")],
         remote_gw: Annotated[str, Field(description="Remote gateway IP address.")],
         interface: Annotated[
@@ -130,17 +138,6 @@ def register(mcp: FastMCP) -> None:
                 description="Use VPN gateway as network device: enable or disable.",
             ),
         ] = "disable",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -176,6 +173,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase1_update(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         name: Annotated[str, Field(description="Tunnel name to update.")],
         remote_gw: Annotated[
             str | None, Field(default=None, description="New remote gateway IP.")
@@ -188,17 +195,6 @@ def register(mcp: FastMCP) -> None:
         ] = None,
         comments: Annotated[
             str | None, Field(default=None, description="New comment.")
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -234,18 +230,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase1_delete(
         ctx: Context,
-        name: Annotated[str, Field(description="Phase 1 tunnel name to delete.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Phase 1 tunnel name to delete.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -274,16 +269,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_ipsec_phase2_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -305,18 +299,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase2_get(
         ctx: Context,
-        name: Annotated[str, Field(description="Phase 2 selector name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Phase 2 selector name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -340,6 +333,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase2_create(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         name: Annotated[str, Field(description="Phase 2 selector name.")],
         phase1_name: Annotated[
             str, Field(description="Name of the parent Phase 1 interface.")
@@ -377,17 +380,6 @@ def register(mcp: FastMCP) -> None:
         ] = None,
         comments: Annotated[
             str | None, Field(default=None, description="Comment.")
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -431,18 +423,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ipsec_phase2_delete(
         ctx: Context,
-        name: Annotated[str, Field(description="Phase 2 selector name to delete.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Phase 2 selector name to delete.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -471,16 +462,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_ssl_settings_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -502,6 +492,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ssl_settings_update(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         status: Annotated[
             str | None,
             Field(
@@ -523,17 +523,6 @@ def register(mcp: FastMCP) -> None:
         login_attempts_limit: Annotated[
             int | None,
             Field(default=None, description="Max login failures before lockout."),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -570,16 +559,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_ssl_portal_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -601,18 +589,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ssl_portal_get(
         ctx: Context,
-        name: Annotated[str, Field(description="SSL VPN portal name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="SSL VPN portal name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -634,6 +621,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ssl_portal_create(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         name: Annotated[str, Field(description="Portal name.")],
         tunnel_mode: Annotated[
             str,
@@ -664,17 +661,6 @@ def register(mcp: FastMCP) -> None:
         ] = "disable",
         heading: Annotated[
             str | None, Field(default=None, description="Portal heading/title.")
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -709,18 +695,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def vpn_ssl_portal_delete(
         ctx: Context,
-        name: Annotated[str, Field(description="SSL VPN portal name to delete.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="SSL VPN portal name to delete.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -743,16 +728,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_ssl_web_host_check_software_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -779,16 +763,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_certificate_ca_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -811,16 +794,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_certificate_local_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -843,16 +825,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_certificate_remote_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -875,16 +856,15 @@ def register(mcp: FastMCP) -> None:
     async def vpn_certificate_ocsp_server_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -911,16 +891,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_vpn_ipsec(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -942,20 +921,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_vpn_ipsec_tunnel_up(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         tunnel_name: Annotated[
             str, Field(description="IPsec tunnel (Phase 1) name to bring up.")
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -979,20 +957,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_vpn_ipsec_tunnel_down(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         tunnel_name: Annotated[
             str, Field(description="IPsec tunnel name to bring down.")
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -1017,16 +994,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_vpn_ssl_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1048,23 +1024,22 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_vpn_ssl_delete_user(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         username: Annotated[str, Field(description="SSL VPN username to disconnect.")],
         index: Annotated[
             int | None,
             Field(
                 default=None,
                 description="Session index (use if multiple sessions for same user).",
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
             ),
         ] = None,
         vdom: Annotated[
@@ -1092,16 +1067,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_vpn_certificate_valid(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(

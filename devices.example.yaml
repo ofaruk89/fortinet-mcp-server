@@ -4,8 +4,8 @@
 #   FORTIOS_DEVICES_FILE=/app/devices.yaml     (Docker)
 #   FORTIOS_DEVICES_FILE=./devices.yaml        (local)
 #
-# Every tool takes a `fortigate` parameter naming one of these devices.
-# Omitting it targets the device marked `default: true`.
+# Every tool takes a required `fortigate` parameter naming one of these devices.
+# There is no default: a call always says which firewall it means.
 #
 # Tokens: each FortiGate issues its own. Keep them in .env and reference them
 # here as ${VAR}, so this file holds no secrets. devices.yaml is git-ignored
@@ -21,7 +21,6 @@
 #   site        -         grouping value; fleet tools can select a whole site
 #   tags        -         labels; fleet tools can select by them (must match all)
 #   description -         free text, shown by fortios_devices_list
-#   default     false     targeted when a call omits `fortigate`
 
 devices:
   # ── Site: hq ──────────────────────────────────────────────────────
@@ -32,8 +31,6 @@ devices:
     tags: [edge, ha-primary]
     description: HQ internet edge, HA primary
     verify_ssl: true
-    # Exactly one device should carry this.
-    default: true
 
   - name: fw-hq-02
     host: https://fw-hq-02.example.com

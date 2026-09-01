@@ -33,6 +33,10 @@ class FortiOSClient:
     Authentication is done via Bearer token passed in the ``Authorization``
     header as required by FortiOS 7.6.x.
 
+    Writes are refused unless ``allow_writes`` is set, so a server pointed at
+    production firewalls answers questions but cannot change them until that is
+    turned on deliberately.
+
     Usage::
 
         async with FortiOSClient(host, token) as client:
@@ -49,11 +53,15 @@ class FortiOSClient:
         verify_ssl: bool = False,
         timeout: float = 30.0,
         name: str | None = None,
+        allow_writes: bool = False,
     ) -> None:
         self.host = host.rstrip("/")
         self.api_token = api_token
         # Inventory name, used only to identify the device in log lines.
         self.name = name or self.host
+        # Read-only unless switched on: a server pointed at production
+        # firewalls should not be able to change them by accident.
+        self.allow_writes = allow_writes
         self.vdom = vdom
         self.verify_ssl = verify_ssl
         self.timeout = timeout
@@ -114,6 +122,16 @@ class FortiOSClient:
         matters most with a multi-device inventory, where one unreachable
         firewall is a normal condition rather than a fault.
         """
+        # The verb is the classification: every read is a GET, and every write
+        # or action is a POST, PUT or DELETE. Gating here rather than per tool
+        # means a tool added later cannot slip through unclassified.
+        if method != "GET" and not self.allow_writes:
+            raise FortiOSError(
+                f"Refusing {method} on device {self.name!r}: this server is "
+                "running read-only. Set FORTIOS_ALLOW_WRITES=true to allow "
+                "changes."
+            )
+
         client = self._client_guard()
         try:
             resp = await client.request(method, url, **kwargs)

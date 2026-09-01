@@ -15,7 +15,6 @@ from devices import (
     DeviceRegistry,
     UnknownDeviceError,
     load_devices,
-    resolve_default,
 )
 from fortios_client import FortiOSClient
 from server import mcp
@@ -26,7 +25,6 @@ TWO_DEVICES: list[dict[str, Any]] = [
         "host": "https://aef01.test:4443",
         "api_token": "token-a",
         "site": "aef",
-        "default": True,
     },
     {
         "name": "bef01",
@@ -42,7 +40,6 @@ def _clear_inventory_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep the developer's own .env out of these tests."""
     for var in (
         "FORTIOS_DEVICES_FILE",
-        "FORTIOS_DEFAULT_DEVICE",
         "FORTIOS_HOST",
         "FORTIOS_API_TOKEN",
     ):
@@ -81,7 +78,6 @@ devices:
     assert result[0].site == "aef"
     assert result[1].verify_ssl is True
     assert result[1].timeout == 45
-    assert resolve_default(result) == "aef01"
 
 
 def test_vdom_comes_from_the_inventory_and_defaults_to_root(
@@ -146,7 +142,6 @@ devices:
 
     assert [d.name for d in result] == ["fw-hq-01"]
     assert result[0].vdom == "root"
-    assert resolve_default(result) == "fw-hq-01"
 
 
 def test_inventory_path_defaults_to_devices_yaml(
@@ -226,44 +221,11 @@ def test_duplicate_names_are_rejected(
 # ── Default selection ─────────────────────────────────────────────────
 
 
-def test_env_override_wins_over_inventory_default(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("FORTIOS_DEFAULT_DEVICE", "bef01")
-    result = [DeviceConfig(**d) for d in TWO_DEVICES]
-
-    assert resolve_default(result) == "bef01"
-
-
-def test_unknown_default_override_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("FORTIOS_DEFAULT_DEVICE", "nope")
-    result = [DeviceConfig(**d) for d in TWO_DEVICES]
-
-    with pytest.raises(DeviceConfigError, match="not in the inventory"):
-        resolve_default(result)
-
-
-def test_two_defaults_are_rejected() -> None:
-    result = [DeviceConfig(**{**d, "default": True}) for d in TWO_DEVICES]
-
-    with pytest.raises(DeviceConfigError, match="More than one device is marked"):
-        resolve_default(result)
-
-
-def test_no_default_falls_back_to_first_with_a_warning(caplog) -> None:
-    result = [DeviceConfig(**{**d, "default": False}) for d in TWO_DEVICES]
-
-    with caplog.at_level("WARNING", logger="fortios_mcp"):
-        assert resolve_default(result) == "aef01"
-
-    assert "No default device configured" in caplog.text
-
-
 # ── Registry ──────────────────────────────────────────────────────────
 
 
 def _registry() -> DeviceRegistry:
-    registry = DeviceRegistry("aef01")
+    registry = DeviceRegistry()
     for entry in TWO_DEVICES:
         config = DeviceConfig(**entry)
         registry.register(
@@ -276,7 +238,7 @@ def test_registry_resolves_names_and_default() -> None:
     registry = _registry()
 
     assert registry.names() == ["aef01", "bef01"]
-    assert registry.get().host == "https://aef01.test:4443"
+    assert registry.get("aef01").host == "https://aef01.test:4443"
     assert registry.get("bef01").host == "https://bef01.test:4443"
 
 
@@ -321,7 +283,7 @@ def _tagged_registry() -> DeviceRegistry:
             "tags": ["edge"],
         },
     ]
-    registry = DeviceRegistry("fw-hq-01")
+    registry = DeviceRegistry()
     for entry in entries:
         config = DeviceConfig(**entry)
         registry.register(
@@ -402,7 +364,6 @@ def test_describe_never_exposes_tokens() -> None:
     described = _registry().describe()
 
     assert [d["name"] for d in described] == ["aef01", "bef01"]
-    assert described[0]["is_default"] is True
     assert "token" not in json.dumps(described)
 
 
@@ -417,9 +378,7 @@ def _tool_fn(name: str) -> Any:
 
 def _ctx(registry: DeviceRegistry) -> Any:
     return SimpleNamespace(
-        request_context=SimpleNamespace(
-            lifespan_context={"client": registry.get(), "devices": registry}
-        ),
+        request_context=SimpleNamespace(lifespan_context={"devices": registry}),
         error=_noop,
     )
 
@@ -431,7 +390,6 @@ async def _noop(*_: Any, **__: Any) -> None:
 @pytest.mark.parametrize(
     ("fortigate", "expected_host"),
     [
-        (None, "aef01.test"),
         ("aef01", "aef01.test"),
         ("bef01", "bef01.test"),
     ],
@@ -474,8 +432,8 @@ async def test_unknown_device_returns_an_error_without_calling_out(
 async def test_devices_list_reports_inventory_without_tokens() -> None:
     result = await _tool_fn("fortios_devices_list")(ctx=_ctx(_registry()))
 
-    assert result["default_device"] == "aef01"
     assert result["count"] == 2
+    assert result["fortigate_required"] is True
     assert "token" not in json.dumps(result)
 
 
@@ -576,3 +534,71 @@ async def test_routine_api_errors_stay_out_of_the_warning_log(
                 await client.cmdb_get("firewall/address/nope")
 
     assert caplog.text == ""
+
+
+# ── Read-only gate ────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_a_change_is_refused_while_the_server_is_read_only(
+    httpx_mock: HTTPXMock,
+) -> None:
+    from fortios_client import FortiOSError
+
+    async with FortiOSClient(
+        host="https://fw.test", api_token="t", name="fw-hq-01", allow_writes=False
+    ) as client:
+        with pytest.raises(FortiOSError) as excinfo:
+            await client.cmdb_delete("firewall/address/doomed")
+
+    message = str(excinfo.value)
+    assert "read-only" in message
+    assert "FORTIOS_ALLOW_WRITES" in message
+    assert "fw-hq-01" in message
+    # Refused before anything left the process, not after the firewall answered.
+    assert httpx_mock.get_requests() == []
+
+
+@pytest.mark.asyncio
+async def test_reads_are_unaffected_by_the_gate(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(json={"status": "success", "results": []})
+
+    async with FortiOSClient(
+        host="https://fw.test", api_token="t", allow_writes=False
+    ) as client:
+        result = await client.cmdb_get("firewall/address")
+
+    assert result["status"] == "success"
+    request = httpx_mock.get_request()
+    assert request is not None and request.method == "GET"
+
+
+@pytest.mark.parametrize(
+    ("method", "call"),
+    [
+        ("POST", lambda c: c.cmdb_post("firewall/address", {"name": "x"})),
+        ("PUT", lambda c: c.cmdb_put("firewall/address/x", {"comment": "y"})),
+        ("DELETE", lambda c: c.cmdb_delete("firewall/address/x")),
+        ("POST", lambda c: c.monitor_post("system/config/restore")),
+    ],
+)
+@pytest.mark.asyncio
+async def test_every_write_verb_goes_through_once_enabled(
+    httpx_mock: HTTPXMock, method: str, call
+) -> None:
+    """The gate is the verb, so each one must be reachable when writes are on."""
+    httpx_mock.add_response(json={"status": "success"})
+
+    async with FortiOSClient(
+        host="https://fw.test", api_token="t", allow_writes=True
+    ) as client:
+        result = await call(client)
+
+    assert result["status"] == "success"
+    request = httpx_mock.get_request()
+    assert request is not None and request.method == method
+
+
+def test_writes_are_off_unless_asked_for() -> None:
+    """The default matters more than the flag: production should be safe as-is."""
+    assert FortiOSClient(host="https://fw.test", api_token="t").allow_writes is False

@@ -28,16 +28,15 @@ def register(mcp: FastMCP) -> None:
     async def ips_sensor_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -59,18 +58,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def ips_sensor_get(
         ctx: Context,
-        name: Annotated[str, Field(description="IPS sensor name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="IPS sensor name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -92,6 +90,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def ips_sensor_create(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         name: Annotated[str, Field(description="IPS sensor name.")],
         block_malicious_url: Annotated[
             str,
@@ -102,17 +110,6 @@ def register(mcp: FastMCP) -> None:
         ] = "disable",
         comment: Annotated[
             str | None, Field(default=None, description="Comment.")
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -141,18 +138,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def ips_sensor_delete(
         ctx: Context,
-        name: Annotated[str, Field(description="IPS sensor name to delete.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="IPS sensor name to delete.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -175,16 +171,15 @@ def register(mcp: FastMCP) -> None:
     async def ips_custom_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -211,16 +206,15 @@ def register(mcp: FastMCP) -> None:
     async def antivirus_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -242,18 +236,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def antivirus_profile_get(
         ctx: Context,
-        name: Annotated[str, Field(description="Antivirus profile name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Antivirus profile name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -275,6 +268,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def antivirus_profile_create(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         name: Annotated[str, Field(description="Profile name.")],
         comment: Annotated[
             str | None, Field(default=None, description="Comment.")
@@ -286,17 +289,6 @@ def register(mcp: FastMCP) -> None:
                 description="FortiSandbox analytics: disable, suspicious, or all.",
             ),
         ] = "disable",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -322,16 +314,15 @@ def register(mcp: FastMCP) -> None:
     async def antivirus_settings_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -358,16 +349,15 @@ def register(mcp: FastMCP) -> None:
     async def webfilter_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -389,18 +379,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def webfilter_profile_get(
         ctx: Context,
-        name: Annotated[str, Field(description="Web filter profile name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Web filter profile name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -423,16 +412,15 @@ def register(mcp: FastMCP) -> None:
     async def webfilter_urlfilter_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -455,16 +443,15 @@ def register(mcp: FastMCP) -> None:
     async def webfilter_override_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -487,16 +474,15 @@ def register(mcp: FastMCP) -> None:
     async def webfilter_content_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -523,16 +509,15 @@ def register(mcp: FastMCP) -> None:
     async def application_list_profiles(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -554,18 +539,17 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def application_list_get(
         ctx: Context,
-        name: Annotated[str, Field(description="Application profile name.")],
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
+        name: Annotated[str, Field(description="Application profile name.")],
         vdom: Annotated[
             str | None,
             Field(
@@ -588,16 +572,15 @@ def register(mcp: FastMCP) -> None:
     async def application_group_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -624,16 +607,15 @@ def register(mcp: FastMCP) -> None:
     async def dlp_sensor_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -656,16 +638,15 @@ def register(mcp: FastMCP) -> None:
     async def dlp_dictionary_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -688,16 +669,15 @@ def register(mcp: FastMCP) -> None:
     async def dlp_filepattern_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -724,16 +704,15 @@ def register(mcp: FastMCP) -> None:
     async def emailfilter_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -756,16 +735,15 @@ def register(mcp: FastMCP) -> None:
     async def emailfilter_bwl_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -792,16 +770,15 @@ def register(mcp: FastMCP) -> None:
     async def dnsfilter_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -824,16 +801,15 @@ def register(mcp: FastMCP) -> None:
     async def dnsfilter_domain_filter_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -860,16 +836,15 @@ def register(mcp: FastMCP) -> None:
     async def file_filter_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -896,16 +871,15 @@ def register(mcp: FastMCP) -> None:
     async def icap_server_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -928,16 +902,15 @@ def register(mcp: FastMCP) -> None:
     async def icap_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -964,16 +937,15 @@ def register(mcp: FastMCP) -> None:
     async def ssh_filter_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1000,16 +972,15 @@ def register(mcp: FastMCP) -> None:
     async def waf_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1032,16 +1003,15 @@ def register(mcp: FastMCP) -> None:
     async def waf_signature_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1068,16 +1038,15 @@ def register(mcp: FastMCP) -> None:
     async def voip_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1104,16 +1073,15 @@ def register(mcp: FastMCP) -> None:
     async def virtual_patch_profile_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1140,16 +1108,15 @@ def register(mcp: FastMCP) -> None:
     async def automation_setting_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1176,16 +1143,15 @@ def register(mcp: FastMCP) -> None:
     async def ztna_server_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -1208,16 +1174,15 @@ def register(mcp: FastMCP) -> None:
     async def ztna_tag_policy_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(

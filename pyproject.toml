@@ -1,6 +1,6 @@
 [project]
 name = "fortios-mcp-server"
-version = "2.0.0"
+version = "3.0.0"
 description = "MCP server for Fortinet FortiOS — multi-device, containerized, authenticated HTTP transport"
 authors = [
     {name = "Paolo Amato", email = "paoloamato1313@gmail.com"}

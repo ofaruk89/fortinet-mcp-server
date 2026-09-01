@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-09-02
+
+**Breaking:** every tool call must name its FortiGate, and the server refuses to
+change anything unless writes are switched on.
+
+### Added
+
+- **Read-only by default.** `FORTIOS_ALLOW_WRITES` must be set before any
+  create, update, delete or monitor action is allowed; until then each is
+  refused before the request leaves the process, with a message saying why.
+  Reads are unaffected.
+
+  The gate is the HTTP verb — every read is a `GET`, every change a `POST`,
+  `PUT` or `DELETE` — rather than a list of tool names, so a tool added later
+  cannot slip through unclassified. It sits in the one client method all 242
+  tools reach their device through.
+
+  A server pointed at production now answers questions about it without being
+  able to alter it, and writes are enabled deliberately for the window they are
+  needed.
+
+### Changed
+
+- **`fortigate` is required on every tool.** It was optional, resolving to a
+  default device; there is no default any more and no way to omit it. A call
+  that does not name a device fails at the schema, so a question about "the
+  firewall" cannot be answered from the wrong one — the assistant asks which
+  device to use and carries the answer through the conversation.
+- Startup logs whether writes are enabled.
+
+### Removed
+
+- The `default` field in `devices.yaml` and the `FORTIOS_DEFAULT_DEVICE`
+  variable. Both existed only to decide which device an unqualified call meant,
+  and an unqualified call is no longer possible.
+
+### Migration
+
+Nothing in `devices.yaml` has to change beyond dropping `default: true`, which
+is now ignored. Assistants pass `fortigate` themselves; a script calling the
+tools directly must add it:
+
+```python
+firewall_policy_list(fortigate="fw-hq-01")     # was: firewall_policy_list()
+```
+
+To keep making changes through the server, set `FORTIOS_ALLOW_WRITES=true` in
+`.env`. Leaving it unset is the safer default and is recommended for anything
+pointed at production.
+
 ## [2.0.0] — 2026-09-02
 
 **Breaking:** `devices.yaml` is now the only way to configure a FortiGate. The
@@ -218,7 +268,8 @@ unchanged, and no tool lost or renamed an existing parameter.
 Fork point — see the
 [upstream project](https://github.com/paoloamato2/fortinet-mcp-server).
 
-[Unreleased]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v2.0.0...v3.0.0
 [2.0.0]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.0.0...v1.1.0

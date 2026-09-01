@@ -35,9 +35,12 @@ async def test_rename_issues_put_with_new_name(
     )
     registry = build_registry(fw="https://fw.example.test")
 
-    async with registry.get():
+    async with registry.get("fw"):
         result = await _tool_fn(tool_name)(
-            ctx=build_ctx(registry), name="old-name", new_name="new-name"
+            ctx=build_ctx(registry),
+            fortigate="fw",
+            name="old-name",
+            new_name="new-name",
         )
 
     assert result["status"] == "success"
@@ -59,9 +62,12 @@ async def test_rename_to_same_name_is_rejected_without_a_request(
 ) -> None:
     registry = build_registry(fw="https://fw.example.test")
 
-    async with registry.get():
+    async with registry.get("fw"):
         result = await _tool_fn(tool_name)(
-            ctx=build_ctx(registry), name="same-name", new_name="same-name"
+            ctx=build_ctx(registry),
+            fortigate="fw",
+            name="same-name",
+            new_name="same-name",
         )
 
     assert "error" in result

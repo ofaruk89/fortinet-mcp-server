@@ -26,16 +26,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_network_arp_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -58,16 +57,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_network_lldp_neighbors(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -89,20 +87,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_interface_dhcp_status(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         interface: Annotated[
             str | None,
             Field(default=None, description="Interface name to get DHCP status for."),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -132,20 +129,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_fortiview_top_sources(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         count: Annotated[
             int, Field(default=20, description="Number of top entries to return.")
         ] = 20,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -169,20 +165,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_fortiview_top_destinations(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         count: Annotated[
             int, Field(default=20, description="Number of top entries to return.")
         ] = 20,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -208,20 +203,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_fortiview_top_applications(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         count: Annotated[
             int, Field(default=20, description="Number of top entries to return.")
         ] = 20,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -248,16 +242,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_fortiview_top_threat_map(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -286,16 +279,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_license_status(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -318,16 +310,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_license_forticare_resellers(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -354,16 +345,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_endpoint_summary(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -385,20 +375,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_endpoint_record_list(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         count: Annotated[
             int, Field(default=100, description="Number of records to return.")
         ] = 100,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -427,16 +416,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_ips_anomaly(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -459,16 +447,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_utm_app_categories(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -495,16 +482,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_switch_controller_managed_switch(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -528,20 +514,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_switch_controller_port_stats(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         switch_id: Annotated[
             str | None,
             Field(default=None, description="FortiSwitch serial number to query."),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
         ] = None,
         vdom: Annotated[
             str | None,
@@ -574,16 +559,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_security_rating_summary(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -609,21 +593,20 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_system_config_backup(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         scope: Annotated[
             str,
             Field(default="global", description="Backup scope: global or vdom."),
         ] = "global",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -653,16 +636,15 @@ def register(mcp: FastMCP) -> None:
     async def monitor_system_process_list(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -688,22 +670,21 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_interface_stats(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         interface: Annotated[
             str | None,
             Field(
                 default=None,
                 description="Interface name. If not specified, returns all interfaces.",
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
             ),
         ] = None,
         vdom: Annotated[
@@ -736,6 +717,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_network_ping(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         destination: Annotated[
             str, Field(description="IP address or hostname to ping.")
         ],
@@ -749,17 +740,6 @@ def register(mcp: FastMCP) -> None:
         count: Annotated[
             int, Field(default=5, description="Number of ICMP pings to send.")
         ] = 5,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -790,20 +770,19 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def monitor_geoip_lookup(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         ip_address: Annotated[
             str, Field(description="IPv4 address to look up geolocation for.")
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(

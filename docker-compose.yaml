@@ -15,7 +15,7 @@ services:
     # Pulled by default; `docker compose build` (or `up --build`) overrides it
     # with a local build from this Dockerfile. Also on GHCR as
     # ghcr.io/ofaruk89/fortinet-mcp-server — set FORTIOS_MCP_IMAGE to switch.
-    image: ${FORTIOS_MCP_IMAGE:-omerfarukgul/fortinet-mcp-server:2.0.0}
+    image: ${FORTIOS_MCP_IMAGE:-omerfarukgul/fortinet-mcp-server:3.0.0}
     build:
       context: .
       dockerfile: Dockerfile
@@ -41,7 +41,8 @@ services:
       # The default inventory path resolves to /app/devices.yaml, which is the
       # mount above; set this only to point somewhere else.
       - FORTIOS_DEVICES_FILE=${FORTIOS_DEVICES_FILE:-}
-      - FORTIOS_DEFAULT_DEVICE=${FORTIOS_DEFAULT_DEVICE:-}
+      # Read-only unless switched on. See .env.example.
+      - FORTIOS_ALLOW_WRITES=${FORTIOS_ALLOW_WRITES:-}
       - MCP_TRANSPORT=${MCP_TRANSPORT:-streamable-http}
       # Container-internal bind address. Deliberately NOT taken from .env:
       # anything other than 0.0.0.0 makes the published port unreachable.
