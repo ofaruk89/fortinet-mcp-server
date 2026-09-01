@@ -48,6 +48,7 @@
 - [Project Structure](#project-structure)
 - [Security Notes](#security-notes)
 - [Contributing](#contributing)
+- [Changelog](#changelog)
 - [License](#license)
 
 ---
@@ -556,6 +557,12 @@ Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before
 - Bug reports and feature requests → [open an issue](https://github.com/ofaruk89/fortinet-mcp-server/issues)
 - Security vulnerabilities → see [SECURITY.md](SECURITY.md)
 - Code of conduct → [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+
+---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ---
 
