@@ -590,5 +590,3 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 > **Disclaimer:** This project is not affiliated with or endorsed by Fortinet, Inc. FortiOS and FortiGate are trademarks of Fortinet, Inc.
-
-<!-- edge build path filter check -->
