@@ -35,7 +35,10 @@ classifiers = [
     "Topic :: System :: Networking :: Firewalls"
 ]
 dependencies = [
-    "mcp[cli]>=1.9.0",
+    # <2: this codebase uses the v1 API (mcp.server.fastmcp.FastMCP), which mcp
+    # 2.x renamed to mcp.server.mcpserver.MCPServer. Without the cap a fresh
+    # install resolves 2.x and fails on the first import.
+    "mcp[cli]>=1.9.0,<2",
     "httpx>=0.28.0",
     "pydantic>=2.10.0",
     "python-dotenv>=1.0.0",
@@ -55,7 +58,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
+# Ship the runtime only. `packages = ["."]` swept the whole tree into the
+# wheel — uv.lock alone was half its size, alongside .github/ and tests/.
+only-include = [
+    "server.py",
+    "fortios_client.py",
+    "devices.py",
+    "tools",
+]
 
 [dependency-groups]
 dev = [
