@@ -387,19 +387,21 @@ chmod 644 .env          # must be readable by the container user
 docker compose up -d
 ```
 
-`docker compose up` pulls the published image. Build from source instead with
-`docker compose up -d --build`, or pin a different one:
+`docker compose up` pulls the published image; `--build` builds from source
+instead. The image is published to both registries on every version tag, for
+`linux/amd64` and `linux/arm64`, tagged `1.1.0`, `1.1`, `1` and `latest`:
 
 ```bash
-docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0
+docker pull omerfarukgul/fortinet-mcp-server:1.1.0          # Docker Hub
+docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0      # GHCR
 ```
+
+Compose uses Docker Hub by default. Point `FORTIOS_MCP_IMAGE` at whichever you
+prefer — GHCR avoids Docker Hub's anonymous pull rate limits:
 
 ```dotenv
 FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0
 ```
-
-Images are built for `linux/amd64` and `linux/arm64` and published on every
-version tag, tagged `1.1.0`, `1.1`, `1` and `latest`.
 
 The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
 `MCP_PORT` you set).
