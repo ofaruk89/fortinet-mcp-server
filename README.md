@@ -384,8 +384,22 @@ cp .env.example .env
 chmod 644 .env          # must be readable by the container user
 # edit .env: FORTIOS_HOST, FORTIOS_API_TOKEN, and MCP_PORT if 8000 is taken
 
-docker compose up -d --build
+docker compose up -d
 ```
+
+`docker compose up` pulls the published image. Build from source instead with
+`docker compose up -d --build`, or pin a different one:
+
+```bash
+docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0
+```
+
+```dotenv
+FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0
+```
+
+Images are built for `linux/amd64` and `linux/arm64` and published on every
+version tag, tagged `1.1.0`, `1.1`, `1` and `latest`.
 
 The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
 `MCP_PORT` you set).
