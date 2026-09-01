@@ -4,17 +4,18 @@ A single MCP server instance talks to every FortiGate in the inventory, so the
 tool surface stays flat (one set of tools, not one set per firewall) and a single
 conversation can reach across sites.
 
-The inventory is read from the first source that is present:
+Every FortiGate — one or fifty — is declared in ``devices.yaml``. There is no
+second way to configure a device: one file, one format, whatever the size of
+the estate.
 
-1. ``FORTIOS_DEVICES_FILE`` — path to a YAML or JSON file (recommended for more
-   than a handful of devices; supports comments and per-device metadata).
-2. ``FORTIOS_DEVICES`` — the same structure inline as JSON, for small setups
-   that would rather keep everything in ``.env``.
-3. ``FORTIOS_HOST`` / ``FORTIOS_API_TOKEN`` / … — the original single-device
-   variables, registered as one device. Existing deployments keep working
-   unchanged.
+``FORTIOS_DEVICES_FILE`` points somewhere other than ``./devices.yaml`` when
+needed; the default resolves to ``/app/devices.yaml`` inside the container,
+since that is the working directory.
 
 Every device needs its own API token, since tokens are issued per FortiGate.
+Reference them from the environment as ``${VAR}`` to keep the file free of
+secrets, or write them inline — the file is git-ignored and never enters the
+image either way.
 """
 
 from __future__ import annotations
@@ -119,8 +120,11 @@ def _load_inventory_file(path_str: str) -> list[DeviceConfig]:
     path = Path(path_str).expanduser()
     if not path.is_file():
         raise DeviceConfigError(
-            f"FORTIOS_DEVICES_FILE points at {path}, which is not a readable file. "
-            "When running in Docker, check that the file is mounted into the container."
+            f"No device inventory at {path}. Copy devices.example.yaml to "
+            "devices.yaml and fill in your FortiGates, or set "
+            "FORTIOS_DEVICES_FILE to another path. In Docker, check the file is "
+            "mounted into the container — a missing bind-mount source makes "
+            "Docker create a directory there instead."
         )
     text = path.read_text(encoding="utf-8")
 
@@ -140,47 +144,14 @@ def _load_inventory_file(path_str: str) -> list[DeviceConfig]:
     return _devices_from_payload(payload, str(path))
 
 
-def _load_single_device_env() -> list[DeviceConfig]:
-    """Fall back to the original FORTIOS_* variables as a one-device inventory."""
-    host = os.environ.get("FORTIOS_HOST", "").strip()
-    token = os.environ.get("FORTIOS_API_TOKEN", "").strip()
-    if not host or not token:
-        raise DeviceConfigError(
-            "No device inventory found. Set FORTIOS_DEVICES_FILE, FORTIOS_DEVICES, "
-            "or the single-device pair FORTIOS_HOST + FORTIOS_API_TOKEN. "
-            "Copy .env.example to .env and fill in your values."
-        )
-    return [
-        DeviceConfig(
-            name=os.environ.get("FORTIOS_DEVICE_NAME", "default").strip() or "default",
-            host=host,
-            api_token=token,
-            vdom=os.environ.get("FORTIOS_VDOM", "root").strip() or "root",
-            verify_ssl=os.environ.get("FORTIOS_VERIFY_SSL", "false").lower()
-            in ("1", "true", "yes"),
-            timeout=float(os.environ.get("FORTIOS_TIMEOUT", "30")),
-            default=True,
-        )
-    ]
+DEFAULT_INVENTORY = "devices.yaml"
 
 
 def load_devices() -> list[DeviceConfig]:
-    """Build the device inventory from the environment."""
-    inventory_file = os.environ.get("FORTIOS_DEVICES_FILE", "").strip()
-    inline = os.environ.get("FORTIOS_DEVICES", "").strip()
-
-    if inventory_file:
-        devices = _load_inventory_file(inventory_file)
-    elif inline:
-        try:
-            payload = json.loads(inline)
-        except json.JSONDecodeError as exc:
-            raise DeviceConfigError(
-                f"FORTIOS_DEVICES is not valid JSON — {exc}"
-            ) from None
-        devices = _devices_from_payload(payload, "FORTIOS_DEVICES")
-    else:
-        devices = _load_single_device_env()
+    """Read the device inventory. One file, whether it holds one device or fifty."""
+    devices = _load_inventory_file(
+        os.environ.get("FORTIOS_DEVICES_FILE", "").strip() or DEFAULT_INVENTORY
+    )
 
     seen: dict[str, int] = {}
     for device in devices:

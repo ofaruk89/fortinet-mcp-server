@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-09-02
+
+**Breaking:** `devices.yaml` is now the only way to configure a FortiGate. The
+`FORTIOS_HOST` / `FORTIOS_API_TOKEN` environment pair and the inline
+`FORTIOS_DEVICES` JSON are gone.
+
+### Removed
+
+Three ways to declare the same thing had accumulated: an inventory file, the
+same structure inline as JSON, and a single-device environment fallback. Each
+needed its own documentation, its own validation and its own tests, and the
+fallback forced the inventory mount to stay commented out in
+`docker-compose.yaml` — a single-device user had no `devices.yaml`, so Docker
+would create a directory in its place. That in turn made a machine using an
+inventory need a `docker-compose.override.yml` just to put the mount back.
+
+One file removes all of it. `docker-compose.yaml` mounts `devices.yaml`
+outright, and the override file is no longer needed for that.
+
+### Changed
+
+- The inventory path defaults to `./devices.yaml`, which resolves to
+  `/app/devices.yaml` in the container. `FORTIOS_DEVICES_FILE` is now only for
+  pointing somewhere else.
+- A missing inventory says what to create and where, rather than naming an
+  environment variable.
+- Per-device `vdom`, `verify_ssl` and `timeout` were already inventory fields;
+  the global `FORTIOS_VDOM` / `FORTIOS_VERIFY_SSL` / `FORTIOS_TIMEOUT` and
+  `FORTIOS_DEVICE_NAME` variables no longer exist.
+
+### Migration
+
+A `.env` that looked like this:
+
+```dotenv
+FORTIOS_HOST=https://fw.example.com
+FORTIOS_API_TOKEN=abc123
+FORTIOS_VDOM=root
+FORTIOS_VERIFY_SSL=true
+```
+
+becomes a `devices.yaml`:
+
+```yaml
+devices:
+  - name: fw-hq-01
+    host: https://fw.example.com
+    api_token: ${FW_HQ_01_TOKEN}
+    vdom: root
+    verify_ssl: true
+    default: true
+```
+
+with the token left in `.env` as `FW_HQ_01_TOKEN=abc123`. Tool calls are
+unaffected: `fortigate` still defaults to the device marked `default: true`.
+
 ## [1.1.1] — 2026-09-02
 
 A security release. Every dependency carrying a published advisory is updated,
@@ -162,7 +218,8 @@ unchanged, and no tool lost or renamed an existing parameter.
 Fork point — see the
 [upstream project](https://github.com/paoloamato2/fortinet-mcp-server).
 
-[Unreleased]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/ofaruk89/fortinet-mcp-server/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ofaruk89/fortinet-mcp-server/releases/tag/v1.0.0
