@@ -396,6 +396,9 @@ docker pull omerfarukgul/fortinet-mcp-server:1.1.0          # Docker Hub
 docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0      # GHCR
 ```
 
+`edge` tracks the latest `master` and `sha-<commit>` pins one build, both
+published on every push. `latest` only ever moves to a released version.
+
 Compose uses Docker Hub by default. Point `FORTIOS_MCP_IMAGE` at whichever you
 prefer — GHCR avoids Docker Hub's anonymous pull rate limits:
 
