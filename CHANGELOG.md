@@ -66,6 +66,14 @@ unchanged, and no tool lost or renamed an existing parameter.
   usually empty, producing `Error executing tool monitor_get:` with nothing after
   it. All ten request methods now wrap them into `FortiOSError`, which every tool
   already catches: `Cannot reach https://10.0.0.1: ConnectTimeout`.
+- **A fresh install pulled an incompatible MCP SDK.** The `mcp[cli]>=1.9.0`
+  requirement had no upper bound, so a plain `pip install` resolved mcp 2.x,
+  where `mcp.server.fastmcp.FastMCP` — which this codebase uses — no longer
+  exists, and the server died on its first import. Capped at `<2`. `uv sync`
+  users were unaffected because `uv.lock` pinned 1.26.0.
+- **The wheel shipped the whole repository.** `packages = ["."]` swept in
+  `uv.lock` (over half the wheel), `.github/` and `tests/`. Now only the runtime
+  is included: 56 KB instead of 154 KB.
 - **`system_dhcp_server_create` rejected a call its own schema invited.**
   `lease_time` was declared `Field(default=86400)` with no Python default, so the
   schema advertised it as optional while the function required it positionally;
@@ -84,7 +92,7 @@ unchanged, and no tool lost or renamed an existing parameter.
 ### Dependencies
 
 - Added `pyyaml>=6.0`, imported lazily so a JSON inventory does not need it.
-  Run `uv sync` after upgrading.
+- `mcp[cli]` is now capped below 2.0 — see Fixed. Run `uv sync` after upgrading.
 
 ## [1.0.0]
 

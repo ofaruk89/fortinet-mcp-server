@@ -276,7 +276,9 @@ log.register(mcp)
 security.register(mcp)
 wireless.register(mcp)
 
-logger.info("All 10 tool modules registered (204+ tools).")
+logger.info(
+    "Registered %d tools across 10 modules.", len(mcp._tool_manager.list_tools())
+)
 
 
 # ─────────────────────────────────────────────────────────────────────
