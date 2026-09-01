@@ -1,0 +1,101 @@
+name: Prune sha images
+
+# Every master build publishes a sha-<commit> tag, so they accumulate. This
+# keeps the ten most recent and removes the rest.
+#
+# Deliberately a separate scheduled workflow rather than a step in the release:
+# a fault in the pruning logic must never be able to fail a publish. Run it by
+# hand from the Actions tab whenever you want.
+
+on:
+  schedule:
+    # Mondays, after the Dependabot run.
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: "How many sha-* images to keep"
+        required: false
+        default: "10"
+        type: string
+      dry_run:
+        description: "List what would be deleted without deleting it"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune old sha-* image versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: fortinet-mcp-server
+          KEEP: ${{ inputs.keep || '10' }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.request, urllib.error
+
+          token, owner = os.environ["GH_TOKEN"], os.environ["OWNER"]
+          package, keep = os.environ["PACKAGE"], int(os.environ["KEEP"])
+          dry_run = os.environ.get("DRY_RUN", "").lower() == "true"
+          api = f"https://api.github.com/users/{owner}/packages/container/{package}"
+          hdr = {"Authorization": f"Bearer {token}",
+                 "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28"}
+
+          def request(url, method="GET"):
+              req = urllib.request.Request(url, method=method, headers=hdr)
+              with urllib.request.urlopen(req) as r:
+                  body = r.read()
+                  return json.loads(body) if body else None
+
+          versions, page = [], 1
+          while True:
+              try:
+                  batch = request(f"{api}/versions?per_page=100&page={page}")
+              except urllib.error.HTTPError as exc:
+                  sys.exit(f"::error::cannot list versions: HTTP {exc.code} {exc.read().decode()[:200]}")
+              if not batch:
+                  break
+              versions += batch
+              page += 1
+
+          # Only versions whose every tag is a sha-* tag are candidates. A
+          # version that also carries `latest`, `edge` or a release number is
+          # left alone, and so is an untagged one — those are the per-platform
+          # manifests a multi-arch tag points at, and deleting them would break
+          # the release that references them.
+          candidates = []
+          for v in versions:
+              tags = v.get("metadata", {}).get("container", {}).get("tags", [])
+              if tags and all(t.startswith("sha-") for t in tags):
+                  candidates.append(v)
+
+          candidates.sort(key=lambda v: v["created_at"], reverse=True)
+          doomed = candidates[keep:]
+
+          print(f"{len(versions)} versions, {len(candidates)} tagged sha-*, keeping {keep}")
+          if not doomed:
+              print("nothing to prune")
+              sys.exit(0)
+
+          for v in doomed:
+              tags = ",".join(v["metadata"]["container"]["tags"])
+              if dry_run:
+                  print(f"  would delete {tags} ({v['created_at']})")
+                  continue
+              try:
+                  request(f"{api}/versions/{v['id']}", method="DELETE")
+                  print(f"  deleted {tags}")
+              except urllib.error.HTTPError as exc:
+                  sys.exit(f"::error::cannot delete {tags}: HTTP {exc.code} "
+                           f"{exc.read().decode()[:200]}")
+          PY
