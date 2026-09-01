@@ -21,6 +21,10 @@ env/
 # Secrets
 .env
 !.env.example
+# Local compose overrides (inventory mount, machine-specific tweaks)
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # Device inventory — holds one API token per FortiGate
 devices.yaml
 devices.yml
