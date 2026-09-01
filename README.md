@@ -399,6 +399,34 @@ docker pull ghcr.io/ofaruk89/fortinet-mcp-server:1.1.0      # GHCR
 `edge` tracks the latest `master` and `sha-<commit>` pins one build, both
 published on every push. `latest` only ever moves to a released version.
 
+### Trying edge alongside the running server
+
+`edge` is a moving tag, so pull explicitly — `up -d` alone reuses whatever copy
+is already on disk. Run it as a second Compose project on its own port and
+container name, and the live service is untouched:
+
+```bash
+FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:edge \
+FORTIOS_MCP_CONTAINER_NAME=fortios-mcp-edge \
+MCP_PORT=8009 \
+MCP_ALLOWED_HOSTS='["10.0.0.5:8009"]' \
+  docker compose -p fortios-edge up -d --pull always
+```
+
+`MCP_ALLOWED_HOSTS` has to carry the *new* port, or requests are rejected with
+`421 Invalid Host header` — the entry names the address clients connect to, and
+that includes the port. Loopback needs no entry.
+
+Tear it down with the same project name:
+
+```bash
+docker compose -p fortios-edge down
+```
+
+To move the main service onto `edge` instead, set `FORTIOS_MCP_IMAGE` in `.env`
+and `docker compose pull && docker compose up -d`. Same tag, same port — the
+pull is what fetches the new build.
+
 Compose uses Docker Hub by default. Point `FORTIOS_MCP_IMAGE` at whichever you
 prefer — GHCR avoids Docker Hub's anonymous pull rate limits:
 

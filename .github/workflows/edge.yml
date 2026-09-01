@@ -16,6 +16,7 @@ on:
       - "LICENSE"
       - ".gitignore"
       - ".env.example"
+      - "docker-compose.yaml"
       - "devices.example.yaml"
       - ".github/dependabot.yml"
       - ".github/labels.yml"
