@@ -67,10 +67,14 @@ jobs:
             name=docker.io/${{ env.DOCKERHUB_USERNAME }}/fortinet-mcp-server,enable=${{ env.DOCKERHUB_USERNAME != '' }}
           # v1.2.3 produces 1.2.3, 1.2, 1 and — since latest=auto is the default
           # and this is not a prerelease — latest.
+          #
+          # `value` is explicit because on workflow_dispatch the ref is the
+          # branch, not the tag, and the semver patterns would find no version
+          # to parse. On a tag push inputs.tag is empty and ref_name is the tag.
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{major}},value=${{ inputs.tag || github.ref_name }}
           labels: |
             org.opencontainers.image.title=FortiOS MCP Server
             org.opencontainers.image.description=MCP server for Fortinet FortiOS — multi-device, containerized, authenticated HTTP transport
