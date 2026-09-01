@@ -4,13 +4,15 @@ name: Release
 # should become an image anyone can pull.
 #
 #   push a v* tag   -> 1.2.3, 1.2, 1, latest   (a release)
-#   push to master  -> edge                    (latest master, for trying it out)
+#   called by edge.yml -> edge                 (latest master, for trying it out)
 #   either          -> sha-<commit>            (immutable, for pinning)
+#
+# Master pushes come in through edge.yml rather than a branch trigger here, so
+# that workflow can carry a paths-ignore filter without it also applying to tag
+# pushes — where path filtering can skip a release outright.
 
 on:
   push:
-    branches:
-      - master
     tags:
       - "v*"
   workflow_dispatch:
@@ -18,6 +20,13 @@ on:
       tag:
         description: "Version tag to build, e.g. v1.1.0"
         required: true
+        type: string
+  workflow_call:
+    inputs:
+      tag:
+        description: "Version tag to build; empty publishes edge from the caller's ref"
+        required: false
+        default: ""
         type: string
 
 jobs:
