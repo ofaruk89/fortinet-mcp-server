@@ -15,7 +15,7 @@ the environment, referenced from the inventory as ${VAR}.
 
 Configuration (environment variables or .env file):
     FORTIOS_DEVICES_FILE   — inventory path (default: ./devices.yaml)
-    FORTIOS_DEFAULT_DEVICE — device used when a tool call omits `fortigate`
+    FORTIOS_ALLOW_WRITES   — true to permit changes; read-only by default
 
 HTTP transport only (MCP_TRANSPORT=streamable-http):
     MCP_HOST           — bind address (default: 127.0.0.1)
@@ -45,7 +45,7 @@ from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from devices import DeviceRegistry, load_devices, resolve_default
+from devices import DeviceRegistry, load_devices
 from fortios_client import FortiOSClient
 
 # ── Tool modules ──────────────────────────────────────────────────────
@@ -183,8 +183,13 @@ def _transport_security() -> TransportSecuritySettings | None:
 async def lifespan(server: FastMCP) -> AsyncGenerator[dict, None]:
     """Create one FortiOS API client per configured device."""
     configs = load_devices()
-    default_name = resolve_default(configs)
-    registry = DeviceRegistry(default_name)
+    allow_writes = os.environ.get("FORTIOS_ALLOW_WRITES", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    registry = DeviceRegistry()
 
     # Entering a FortiOSClient only builds its httpx client; no request is sent
     # until a tool calls the device, so opening them all up front is cheap.
@@ -198,24 +203,24 @@ async def lifespan(server: FastMCP) -> AsyncGenerator[dict, None]:
                     verify_ssl=config.verify_ssl,
                     timeout=config.timeout,
                     name=config.name,
+                    allow_writes=allow_writes,
                 )
             )
             registry.register(config, client)
             logger.info(
-                "Device %r ready: %s (vdom=%s, ssl-verify=%s)%s",
+                "Device %r ready: %s (vdom=%s, ssl-verify=%s)",
                 config.name,
                 config.host,
                 config.vdom,
                 config.verify_ssl,
-                " [default]" if config.name == default_name else "",
             )
 
         logger.info(
-            "%d device(s) registered; default is %r.", len(configs), default_name
+            "%d device(s) registered; writes are %s.",
+            len(configs),
+            "ENABLED" if allow_writes else "refused (read-only)",
         )
-        # "client" is kept so tools that have not gained a `device` parameter yet
-        # keep working against the default device.
-        yield {"client": registry.get(), "devices": registry}
+        yield {"devices": registry}
 
     logger.info("All FortiOS clients closed.")
 
@@ -245,6 +250,16 @@ mcp = FastMCP(
         "- **Security**: IPS, AV, webfilter, app control, DLP, email filter, DNS filter, WAF, ZTNA\n"
         "- **Wireless**: APs, SSIDs, Hotspot 2.0, connected clients, rogue AP detection\n"
         "\n"
+        "\n"
+        "**Choosing a device.** This server may front several FortiGates and has "
+        "no default: every call names the one it targets in `fortigate`. Before "
+        "the first device operation, call fortios_devices_list; if more than one "
+        "device is configured, ask the user which FortiGate to work on — never "
+        "pick one yourself — then carry their answer through the conversation. "
+        "Ask once, not once per request.\n"
+        "**Read-only by default.** Unless the operator has enabled writes, any "
+        "create, update, delete or monitor action is refused and the tool says "
+        "so. Report that back rather than retrying.\n\n"
         "Always use specific typed tools when available. "
         "Fall back to generic cmdb_list/cmdb_get/monitor_get for unlisted resources. "
         "For destructive operations (delete, policy changes), confirm with the user first."

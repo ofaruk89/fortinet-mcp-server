@@ -16,6 +16,9 @@ Every device needs its own API token, since tokens are issued per FortiGate.
 Reference them from the environment as ``${VAR}`` to keep the file free of
 secrets, or write them inline — the file is git-ignored and never enters the
 image either way.
+
+There is no default device: every tool call names the FortiGate it targets, so
+a question about "the firewall" is never answered from the wrong one.
 """
 
 from __future__ import annotations
@@ -65,9 +68,6 @@ class DeviceConfig(BaseModel):
         description="Free-form labels, e.g. [edge, ha-primary]. Selectable.",
     )
     description: str | None = None
-
-    # Marks the device used when a tool call omits `fortigate`.
-    default: bool = False
 
     @field_validator("host")
     @classmethod
@@ -165,61 +165,24 @@ def load_devices() -> list[DeviceConfig]:
     return devices
 
 
-def resolve_default(devices: list[DeviceConfig]) -> str:
-    """Pick the device a tool call targets when it omits `fortigate`."""
-    override = os.environ.get("FORTIOS_DEFAULT_DEVICE", "").strip()
-    names = [d.name for d in devices]
-
-    if override:
-        if override not in names:
-            raise DeviceConfigError(
-                f"FORTIOS_DEFAULT_DEVICE={override!r} is not in the inventory "
-                f"({', '.join(names)})."
-            )
-        return override
-
-    marked = [d.name for d in devices if d.default]
-    if len(marked) > 1:
-        raise DeviceConfigError(
-            f"More than one device is marked default: {', '.join(marked)}. "
-            "Mark exactly one, or set FORTIOS_DEFAULT_DEVICE."
-        )
-    if marked:
-        return marked[0]
-
-    if len(devices) > 1:
-        logger.warning(
-            "No default device configured — falling back to %r. Mark one device "
-            "with 'default: true' or set FORTIOS_DEFAULT_DEVICE to make this explicit.",
-            names[0],
-        )
-    return names[0]
-
-
 class DeviceRegistry:
     """Holds one live FortiOSClient per configured device."""
 
-    def __init__(self, default_name: str) -> None:
+    def __init__(self) -> None:
         self._clients: dict[str, FortiOSClient] = {}
         self._configs: dict[str, DeviceConfig] = {}
-        self._default = default_name
-
-    @property
-    def default_name(self) -> str:
-        return self._default
 
     def register(self, config: DeviceConfig, client: FortiOSClient) -> None:
         self._configs[config.name] = config
         self._clients[config.name] = client
 
-    def get(self, device: str | None = None) -> FortiOSClient:
-        """Return the client for `device`, or the default device when omitted."""
-        name = (device or self._default).strip()
-        client = self._clients.get(name)
+    def get(self, device: str) -> FortiOSClient:
+        """Return the client for `device`. Every call names one FortiGate."""
+        client = self._clients.get(device.strip())
         if client is None:
             raise UnknownDeviceError(
-                f"Unknown device {name!r}. Configured devices: "
-                f"{', '.join(sorted(self._clients))}. "
+                f"Unknown device {device!r}. Configured devices: "
+                f"{', '.join(self.names())}. "
                 "Call fortios_devices_list to see the inventory."
             )
         return client
@@ -288,13 +251,12 @@ class DeviceRegistry:
                 "site": c.site,
                 "tags": c.tags,
                 "description": c.description,
-                "is_default": c.name == self._default,
             }
             for c in sorted(self._configs.values(), key=lambda c: c.name)
         ]
 
 
-def client_for(ctx: Any, device: str | None = None) -> FortiOSClient:
+def client_for(ctx: Any, device: str) -> FortiOSClient:
     """Resolve the FortiOSClient a tool call targets.
 
     Single entry point for every tool: each tool resolves its client here from

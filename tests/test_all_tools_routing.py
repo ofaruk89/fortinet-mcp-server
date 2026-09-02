@@ -15,8 +15,8 @@ from pytest_httpx import HTTPXMock
 from conftest import build_ctx, build_registry
 from server import mcp
 
-# Inventory tools describe or fan out across the fleet, so they take `devices`
-# / `site` instead of a single `fortigate`.
+# Fleet tools address the inventory rather than acting on a device through it,
+# so they take `devices` / `site` / `tags` instead of a single `fortigate`.
 FLEET_TOOLS = {"fortios_devices_list", "fortios_devices_check"}
 
 ALL_TOOLS = sorted(t.name for t in mcp._tool_manager.list_tools())
@@ -77,10 +77,11 @@ def test_every_tool_exposes_the_fortigate_parameter(tool_name: str) -> None:
     properties = _schema(tool_name).get("properties", {})
 
     assert "fortigate" in properties, f"{tool_name} cannot target a device"
-    assert tool_name not in _schema(tool_name).get("required", []), (
-        f"{tool_name} must default to the default device"
+    # Required, not optional: there is no default device, so a call that does
+    # not name one must fail at the schema rather than pick a firewall itself.
+    assert "fortigate" in _schema(tool_name).get("required", []), (
+        f"{tool_name} would let a call omit the device"
     )
-    assert "fortigate" not in _schema(tool_name).get("required", [])
 
 
 def test_no_tool_reads_the_shared_client_directly() -> None:
@@ -101,7 +102,7 @@ def test_router_static_keeps_its_own_device_field() -> None:
     properties = _schema("router_static_create")["properties"]
 
     assert "Egress interface" in properties["device"]["description"]
-    assert "device inventory" in properties["fortigate"]["description"]
+    assert "inventory" in properties["fortigate"]["description"]
 
 
 # ── Routing ───────────────────────────────────────────────────────────
@@ -135,23 +136,6 @@ async def test_every_tool_routes_to_the_named_device(
 
 @pytest.mark.parametrize("tool_name", DEVICE_TOOLS)
 @pytest.mark.asyncio
-async def test_every_tool_falls_back_to_the_default_device(
-    httpx_mock: HTTPXMock, tool_name: str
-) -> None:
-    httpx_mock.add_response(
-        json={"status": "success", "results": []}, is_reusable=True, is_optional=True
-    )
-    registry = build_registry(aef01="https://aef01.test", bef01="https://bef01.test")
-
-    async with registry.get("aef01"), registry.get("bef01"):
-        await _tool_call(tool_name, registry)
-
-    for request in httpx_mock.get_requests():
-        assert request.url.host == "aef01.test", f"{tool_name} ignored the default"
-
-
-@pytest.mark.parametrize("tool_name", DEVICE_TOOLS)
-@pytest.mark.asyncio
 async def test_every_tool_rejects_an_unknown_device_without_calling_out(
     httpx_mock: HTTPXMock, tool_name: str
 ) -> None:
@@ -169,3 +153,26 @@ async def _tool_call(tool_name: str, registry: Any, **overrides: Any) -> dict[st
     tool = mcp._tool_manager.get_tool(tool_name)
     assert tool is not None
     return await tool.fn(ctx=build_ctx(registry), **_args(tool_name), **overrides)
+
+
+# ── Read-only gate ────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("tool_name", DEVICE_TOOLS)
+@pytest.mark.asyncio
+async def test_no_tool_can_change_a_firewall_while_writes_are_off(
+    httpx_mock: HTTPXMock, tool_name: str
+) -> None:
+    """Read-only means read-only: nothing but GET may leave the process."""
+    httpx_mock.add_response(
+        json={"status": "success", "results": []}, is_reusable=True, is_optional=True
+    )
+    registry = build_registry(allow_writes=False, aef01="https://aef01.test")
+
+    async with registry.get("aef01"):
+        await _tool_call(tool_name, registry, fortigate="aef01")
+
+    for request in httpx_mock.get_requests():
+        assert request.method == "GET", (
+            f"{tool_name} issued {request.method} with writes disabled"
+        )

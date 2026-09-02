@@ -54,6 +54,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_query(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         source: Annotated[
             str,
             Field(
@@ -100,17 +110,6 @@ def register(mcp: FastMCP) -> None:
             dict[str, Any] | None,
             Field(default=None, description="Additional query parameters as a dict."),
         ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -151,6 +150,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_traffic_forward(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -176,17 +185,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -222,6 +220,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_traffic_local(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -229,17 +237,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -267,6 +264,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_event_system(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -274,17 +281,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -308,6 +304,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_event_vpn(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -315,17 +321,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -349,6 +344,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_event_user(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -359,17 +364,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -398,6 +392,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_virus(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -405,17 +409,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -444,6 +437,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_webfilter(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -458,17 +461,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -493,6 +485,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_ips_attack(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -503,17 +505,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -538,6 +529,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_app_ctrl(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -549,17 +550,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -584,6 +574,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_dns(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         rows: Annotated[
             int, Field(default=100, description="Max rows per page.")
         ] = 100,
@@ -591,17 +591,6 @@ def register(mcp: FastMCP) -> None:
         source: Annotated[
             str, Field(default="disk", description="Log source: disk or memory.")
         ] = "disk",
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -630,16 +619,15 @@ def register(mcp: FastMCP) -> None:
     async def log_disk_filter_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -662,16 +650,15 @@ def register(mcp: FastMCP) -> None:
     async def log_disk_setting_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -694,16 +681,15 @@ def register(mcp: FastMCP) -> None:
     async def log_memory_setting_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -726,16 +712,15 @@ def register(mcp: FastMCP) -> None:
     async def log_fortianalyzer_setting_get(
         ctx: Context,
         fortigate: Annotated[
-            str | None,
+            str,
             Field(
-                default=None,
                 description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
             ),
-        ] = None,
+        ],
         vdom: Annotated[
             str | None,
             Field(
@@ -757,6 +742,16 @@ def register(mcp: FastMCP) -> None:
     @mcp.tool()
     async def log_fortianalyzer_setting_update(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         status: Annotated[
             str | None,
             Field(default=None, description="Enable or disable: enable or disable."),
@@ -769,17 +764,6 @@ def register(mcp: FastMCP) -> None:
             Field(
                 default=None,
                 description="Encryption algorithm: default, high, low, disable.",
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
             ),
         ] = None,
         vdom: Annotated[

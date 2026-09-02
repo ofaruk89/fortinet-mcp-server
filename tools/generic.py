@@ -29,13 +29,19 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     async def fortios_devices_list(ctx: Context) -> dict[str, Any]:
         """List the configured FortiGates that tools can target.
 
-        Every tool taking a `device` parameter accepts one of the names returned
-        here. API tokens are never included.
+        Call this before the first device operation. Every tool's `fortigate`
+        parameter takes one of these names, a list of them, or "*" for all.
+        There is no default device: when `fortigate_required` is true, ask the
+        user which FortiGate(s) to work on rather than choosing one, then pass
+        their answer as `fortigate` on the calls that follow. API tokens are
+        never included.
         """
         registry: DeviceRegistry = ctx.request_context.lifespan_context["devices"]
         return {
-            "default_device": registry.default_name,
             "count": len(registry.names()),
+            # With more than one device there is no default, so a call has to
+            # name what it means.
+            "fortigate_required": len(registry.names()) > 1,
             # Values accepted by the site/tags selectors of the fleet tools.
             "selectable": registry.groups(),
             "devices": registry.describe(),
@@ -120,6 +126,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def cmdb_list(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         resource_path: Annotated[
             str,
             Field(
@@ -157,17 +173,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description="Comma-separated list of fields to return. Reduces response size.",
             ),
         ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -203,6 +208,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def cmdb_get(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         resource_path: Annotated[
             str,
             Field(
@@ -213,17 +228,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -249,6 +253,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def cmdb_create(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         resource_path: Annotated[
             str,
             Field(
@@ -268,17 +282,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -308,6 +311,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def cmdb_update(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         resource_path: Annotated[
             str,
             Field(
@@ -326,17 +339,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -366,6 +368,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def cmdb_delete(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         resource_path: Annotated[
             str,
             Field(
@@ -375,17 +387,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 )
             ),
         ],
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
-            ),
-        ] = None,
         vdom: Annotated[
             str | None,
             Field(
@@ -415,6 +416,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def monitor_get(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         monitor_path: Annotated[
             str,
             Field(
@@ -432,17 +443,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description=(
                     "Optional JSON string with additional query parameters. "
                     'Example: \'{"tunnel_name": "my-vpn"}\''
-                ),
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
                 ),
             ),
         ] = None,
@@ -477,6 +477,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def monitor_action(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         monitor_path: Annotated[
             str,
             Field(
@@ -495,17 +505,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description=(
                     "Optional JSON string with action parameters. "
                     'Example: \'{"mkey": "tunnel-name"}\''
-                ),
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
                 ),
             ),
         ] = None,
@@ -544,6 +543,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def log_get(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         log_path: Annotated[
             str,
             Field(
@@ -561,17 +570,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
                 description=(
                     "Optional JSON string with query params like filters, rows, start. "
                     'Example: \'{"rows": 100, "start": 0, "filter": "srcip==10.0.0.1"}\''
-                ),
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
                 ),
             ),
         ] = None,
@@ -610,6 +608,16 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
     @mcp.tool()
     async def service_call(
         ctx: Context,
+        fortigate: Annotated[
+            str,
+            Field(
+                description=(
+                    "Which FortiGate from the inventory this call targets. "
+                    "Every call names its device — there is no default. Call "
+                    "fortios_devices_list for the configured names."
+                )
+            ),
+        ],
         service_path: Annotated[
             str,
             Field(
@@ -633,17 +641,6 @@ def register(mcp: FastMCP) -> None:  # noqa: C901
             Field(
                 default=None,
                 description="Optional JSON body for POST requests.",
-            ),
-        ] = None,
-        fortigate: Annotated[
-            str | None,
-            Field(
-                default=None,
-                description=(
-                    "Target FortiGate name from the device inventory. "
-                    "Defaults to the configured default device. "
-                    "Call fortios_devices_list to see the available names."
-                ),
             ),
         ] = None,
         vdom: Annotated[

@@ -22,6 +22,7 @@
 
 - **Your whole fleet from one instance.** Every tool takes a `fortigate` parameter naming a device from your inventory, so 5-6 firewalls per site are reachable from a single deployment — not one server per device, which would load 244 tool definitions into the client's context *per firewall*. Fleet tools can act on a whole site or tag at once.
 - **Runs in Docker.** `docker compose up -d` and you have a `streamable-http` MCP endpoint. The listen and published port come from one `.env` variable, and credentials are bind-mounted at run time so no token is ever baked into the image.
+- **Read-only until you say otherwise.** Changes are refused unless `FORTIOS_ALLOW_WRITES` is on, so a server pointed at production answers questions without being able to alter it.
 - **Safe to put on the network.** Bearer-token authentication on the HTTP transport, `Host` header validation against DNS rebinding, loopback bind by default, and a hardened container (read-only rootfs, all capabilities dropped, non-root user).
 - **The whole API, not a subset.** 233 typed tools across firewall, system, VPN, router, user, monitor, log, security and wireless, plus 9 generic pass-through tools that reach all 1,536 endpoints — including anything the typed tools do not cover yet.
 - **Built for real fleets.** Per-device VDOM and TLS settings, tokens kept out of the inventory file via `${ENV_VAR}` references, an unreachable firewall logged and isolated rather than breaking the call, and 1,011 tests.
@@ -60,7 +61,8 @@
 - Full support for **CMDB, Monitor, Log, and Service** API sections
 - Configurable SSL verification (self-signed certificates supported)
 - Compatible with **multi-VDOM** environments
-- **Multiple FortiGates from one server** — every tool takes a `fortigate` parameter, so one instance serves a whole fleet
+- **Multiple FortiGates from one server** — every tool names its target device, so one instance serves a whole fleet
+- **Read-only by default** — changes are refused until `FORTIOS_ALLOW_WRITES` is turned on
 - Runs as **stdio** (Claude Desktop) or **HTTP** server (remote/cloud use)
 
 ---
@@ -133,7 +135,6 @@ devices:
     host: https://fw-hq-01.example.com
     api_token: ${FW_HQ_01_TOKEN}
     verify_ssl: true
-    default: true
 ```
 
 and its token in `.env`, so the inventory holds no secrets:
@@ -193,13 +194,19 @@ One server instance can serve many FortiGates. This keeps the tool surface flat
 client's context *per firewall* — and lets a single conversation reach across
 sites.
 
-Every tool takes an optional `fortigate` parameter naming a firewall from the
-inventory. Omitting it targets the default device.
+Every tool takes a **required** `fortigate` parameter naming one firewall from
+the inventory. There is no default and no way to omit it, so a question about
+"the firewall" is never answered from the wrong one — the model asks you which
+device to use and carries your answer through the conversation.
 
 ```python
 firewall_policy_list(fortigate="fw-hq-01", filter_action="deny")
 monitor_vpn_ipsec(fortigate="fw-branch-01")
 ```
+
+One call, one device. To look at several, the model calls the tool once per
+firewall; `fortios_devices_check` is the exception and probes many at once,
+read-only.
 
 The parameter is named `fortigate` rather than `device` because FortiOS already
 uses `device` for the egress interface of a static route
@@ -224,7 +231,6 @@ devices:
     site: hq
     tags: [edge, ha-primary]
     verify_ssl: true
-    default: true                  # targeted when `fortigate` is omitted
   - name: fw-branch-01
     host: https://fw-branch-01.example.com
     api_token: ${FW_BRANCH_01_TOKEN}
@@ -257,7 +263,6 @@ FW_BRANCH_01_TOKEN=...
 | `site` | — | Grouping value; fleet tools can select a whole site |
 | `tags` | — | Labels; fleet tools can select by them |
 | `description` | — | Free text, returned by `fortios_devices_list` |
-| `default` | `false` | Targeted when a call omits `fortigate` |
 
 `devices.yaml` holds one API token per firewall unless you use `${VAR}`
 throughout: it is git-ignored and excluded from the Docker image, like `.env`.
@@ -271,12 +276,21 @@ everything edge-ish, and `site` combines with it. `fortios_devices_list`
 reports the values actually in use under `selectable`, so a model can discover
 them before selecting.
 
-### Choosing the default
+### Read-only by default
 
-The device a call targets when `fortigate` is omitted, in order of precedence:
-`FORTIOS_DEFAULT_DEVICE` → the device marked `default: true` → the only device.
-With several devices and no default marked, the first is used and a warning is
-logged at startup.
+The server refuses to change anything unless writes are switched on:
+
+```dotenv
+FORTIOS_ALLOW_WRITES=true
+```
+
+Left off — the default — every create, update, delete and monitor action is
+refused before the request leaves the process, and the tool reports why. Reads
+are unaffected. The gate is the HTTP verb rather than a list of tool names, so a
+tool added later cannot slip through unclassified.
+
+Leave it off on anything pointed at production, and turn it on deliberately for
+the window in which you mean to make changes.
 
 ### Inventory tools
 
@@ -390,11 +404,11 @@ place of a missing bind-mount source, and the server then finds no inventory.
 
 `docker compose up` pulls the published image; `--build` builds from source
 instead. The image is published to both registries on every version tag, for
-`linux/amd64` and `linux/arm64`, tagged `2.0.0`, `2.0`, `2` and `latest`:
+`linux/amd64` and `linux/arm64`, tagged `3.0.0`, `3.0`, `3` and `latest`:
 
 ```bash
-docker pull omerfarukgul/fortinet-mcp-server:2.0.0          # Docker Hub
-docker pull ghcr.io/ofaruk89/fortinet-mcp-server:2.0.0      # GHCR
+docker pull omerfarukgul/fortinet-mcp-server:3.0.0          # Docker Hub
+docker pull ghcr.io/ofaruk89/fortinet-mcp-server:3.0.0      # GHCR
 ```
 
 Besides the release tags:
@@ -439,7 +453,7 @@ Compose uses Docker Hub by default. Point `FORTIOS_MCP_IMAGE` at whichever you
 prefer — GHCR avoids Docker Hub's anonymous pull rate limits:
 
 ```dotenv
-FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:2.0.0
+FORTIOS_MCP_IMAGE=ghcr.io/ofaruk89/fortinet-mcp-server:3.0.0
 ```
 
 The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
@@ -451,10 +465,11 @@ The server is then reachable at `http://127.0.0.1:8000/mcp` (or whatever
 |----------|---------|---------|
 | `MCP_PORT` | `8000` | Port the container listens on **and** the host port published — change it in `.env` only |
 | `MCP_BIND_ADDRESS` | `127.0.0.1` | Host **IP** the port is published on — no port here, `MCP_PORT` supplies it |
+| `FORTIOS_ALLOW_WRITES` | *(off)* | Permit changes. Off means every write is refused |
 | `MCP_TRANSPORT` | `streamable-http` | Transport used inside the container |
 | `MCP_AUTH_TOKEN` | *(empty)* | Bearer token required on every HTTP request; empty disables authentication |
 | `MCP_ALLOWED_HOSTS` | *(empty)* | Extra `Host` header values accepted (DNS rebinding protection) |
-| `FORTIOS_MCP_IMAGE` | published `2.0.0` | Image to run — pin a tag, switch registry, or use a local build |
+| `FORTIOS_MCP_IMAGE` | published `3.0.0` | Image to run — pin a tag, switch registry, or use a local build |
 | `FORTIOS_MCP_CONTAINER_NAME` | `fortios-mcp` | Container name; change it to run a second copy beside the live one |
 
 Machine-specific additions — an extra volume, a different memory limit — belong
@@ -606,6 +621,7 @@ fortinet-mcp-server/
 - The API token grants the same access level as its associated admin profile. Follow the **principle of least privilege** — create a restricted profile if you only need read access.
 - Set `verify_ssl: true` per device in `devices.yaml` for production, and ensure the FortiGate has a valid TLS certificate.
 - The server runs **locally over stdio** by default — it is not exposed over the network unless HTTP mode is enabled.
+- The server is **read-only unless `FORTIOS_ALLOW_WRITES` is set**. Leave it off on production firewalls; turn it on only for the window in which you intend to make changes.
 - In HTTP mode, **always set `MCP_AUTH_TOKEN`** before binding beyond `127.0.0.1`. Without it every tool — including firewall policy create/delete — is reachable unauthenticated by anyone who can open the port. Set `MCP_ALLOWED_HOSTS` as well when clients connect via an IP or hostname, and rotate the token as you would the FortiOS one.
 - **Never commit your `.env` file or expose your API token** in logs, issues, or code.
 - Rotate your API token regularly and revoke it immediately if compromised.
